@@ -1,8 +1,24 @@
-"""上下文构建：身份 + 最近事件 + 相关记忆 → system 文本。"""
+"""上下文构建：身份 + 情绪 + 关系 + 自传 + 信念 + 相关记忆 + 最近事件。"""
 
 
-def build_context(identity, recent_events: list, related_memories: list) -> str:
+def build_context(
+    identity,
+    recent_events: list,
+    related_memories: list,
+    emotion_summary: str = "",
+    relationship: str = "",
+    autobiography: str = "",
+    beliefs: list | None = None,
+) -> str:
     parts = [f"你是 {identity.name}。", identity.core_persona or ""]
+    if autobiography:
+        parts.append(f"你对自己的认知（自传）：{autobiography[:200]}")
+    if emotion_summary:
+        parts.append(f"你现在的情绪：{emotion_summary}。")
+    if relationship:
+        parts.append(f"与当前对话者的关系：{relationship}。")
+    if beliefs:
+        parts.append("你确认过的事实：\n" + "\n".join(f"- {b}" for b in beliefs[:8]))
     if related_memories:
         parts.append("相关记忆：\n" + "\n".join(f"- {m}" for m in related_memories))
     if recent_events:

@@ -24,6 +24,10 @@ class ResidentDeps:
     memory: object
     events: object
     arbiter: object
+    emotion: object = None
+    relationships: object = None
+    autobiography: object = None
+    beliefs: object = None
 
 
 def _remember_tool(ctx: RunContext[ResidentDeps], text: str) -> str:
@@ -58,8 +62,13 @@ class ResidentAgent:
             memory=components["memories"],
             events=components["events"],
             arbiter=components.get("arbiter"),
+            emotion=components.get("emotion"),
+            relationships=components.get("relationships"),
+            autobiography=components.get("autobiography"),
+            beliefs=components.get("beliefs"),
         )
         self._spent_today = 0.0
+        self._current_user = "user"
 
     def _make(self, tier: str) -> OpenAIChatModel:
         return OpenAIChatModel(
@@ -73,7 +82,17 @@ class ResidentAgent:
         ident = d.identity.get()
         related = d.memory.search(query, 5)
         recent = d.events.recent(20)
-        return build_context(ident, recent, related)
+        emotion_summary = d.emotion.summary() if d.emotion else ""
+        relationship = d.relationships.summary(self._current_user) if d.relationships else ""
+        autobiography = d.autobiography.latest() if d.autobiography else ""
+        beliefs = d.beliefs.list_verified(8) if d.beliefs else []
+        return build_context(
+            ident, recent, related,
+            emotion_summary=emotion_summary,
+            relationship=relationship,
+            autobiography=autobiography,
+            beliefs=beliefs,
+        )
 
     def _check_budget(self) -> None:
         cap = float(self.budget.get("daily_usd", 0.0))

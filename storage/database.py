@@ -45,7 +45,18 @@ CREATE TABLE IF NOT EXISTS memories (
     last_access REAL,
     ts REAL NOT NULL,
     decay_state TEXT DEFAULT 'active',
-    links TEXT DEFAULT '[]'
+    links TEXT DEFAULT '[]',
+    meta TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS beliefs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    source TEXT NOT NULL,          -- user / external / self / llm / hypothesis
+    verified INTEGER DEFAULT 0,    -- 模型输出不得自动标 1
+    confidence REAL DEFAULT 0.5,
+    ts REAL NOT NULL,
+    updated_at REAL
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(content, tokenize='unicode61');
@@ -119,4 +130,9 @@ def open_db(path: str) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    # 迁移：旧库补 meta 列
+    try:
+        conn.execute("ALTER TABLE memories ADD COLUMN meta TEXT DEFAULT '{}'")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()

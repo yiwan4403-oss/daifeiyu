@@ -60,13 +60,14 @@ def test_arbiter_decide_and_apply(tmp_path, monkeypatch):
             pass
 
         def chat(self, system, user):
-            return '[{"op":"ADD","content":"玩家 e好耶p 喜欢挖矿"}]'
+            return '{"ops":[{"op":"ADD","content":"玩家 e好耶p 喜欢挖矿"}],"emotion":{"joy":1}}'
 
     monkeypatch.setattr(arbiter_mod, "ModelGateway", FakeGateway)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
     arb = arbiter_mod.MemoryArbiter(cfg, components)
-    ops = asyncio.run(arb.apply("我喜欢挖矿", "知道了"))
-    assert ops and ops[0]["op"] == "ADD"
+    result = asyncio.run(arb.apply("我喜欢挖矿", "知道了"))
+    assert result["ops"] and result["ops"][0]["op"] == "ADD"
+    assert result["emotion"] == {"joy": 1}
     assert "挖矿" in components["memories"].search("挖矿", 5)[0]
 
 

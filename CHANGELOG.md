@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [0.7.0] - 2026-11-06
+
+QQ 与 Bilibili 适配器：
+
+- QQ：OneBot v11 反向 WebSocket（Resident 作 server；私聊/群聊事件→事件总线；
+  发消息必须 L2 审批，CLI /approve 后执行）；测试用真实 websockets 客户端做事件与 action 往返
+- Bilibili：公开只读（wbi 签名搜索 + 视频信息；untrusted、限频、cookie 预热兜底）
+  ——真机实测搜索/视频均通
+- Agent 新工具：bilibili_search / bilibili_video / qq_send（审批制）
+- 配置：qq.enabled / bilibili.*
+- 测试：40/40
+
 ## [0.6.0] - 2026-11-06
 
 Phase 4 尾 + Phase 5/6 完成：

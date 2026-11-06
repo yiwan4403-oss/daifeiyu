@@ -22,7 +22,7 @@ def _affinity_delta(text: str) -> float:
     return max(-0.2, min(0.2, d))
 
 
-async def _handle_command(dev, line: str) -> str:
+async def _handle_command(dev, components: dict, line: str) -> str:
     parts = line.split()
     cmd = parts[0].lower()
     if cmd == "/plugins":
@@ -38,6 +38,9 @@ async def _handle_command(dev, line: str) -> str:
         return "\n".join(f"[{p['id']}] {p['action']} → {p['resource']}：{p['request']}" for p in pend)
     if cmd == "/approve" and len(parts) == 2:
         result = dev.approve(int(parts[1]), True)
+        qq = (components.get("adapters") or {}).get("qq")
+        if qq is not None:
+            await qq.dispatch(int(parts[1]))
         return str(result)
     if cmd == "/reject" and len(parts) == 2:
         result = dev.approve(int(parts[1]), False)
@@ -54,6 +57,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components.setdefault("autobiography", AutobiographyManager(cfg, components))
     components["last_user_ts"] = time.time()
 
+    from adapters.bilibili import BilibiliAdapter
     from adapters.browser import BrowserAdapter
     from adapters.windows import WindowsAdapter
     from development.mcp_client import MCPHub
@@ -68,7 +72,16 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components["adapters"] = {
         "browser": BrowserAdapter(),
         "windows": WindowsAdapter(cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"])),
+        "bilibili": BilibiliAdapter(cfg.get("bilibili", {})),
     }
+    qq_cfg = cfg.get("qq", {})
+    if qq_cfg.get("enabled"):
+        from adapters.qq import OneBotAdapter
+
+        qq_adapter = OneBotAdapter(components, qq_cfg)
+        qq_adapter.start()
+        components["adapters"]["qq"] = qq_adapter
+        print(f"[qq] OneBot 反向 WS 监听 {qq_cfg.get('host')}:{qq_cfg.get('port')}")
     mcp_hub = MCPHub((cfg.get("mcp") or {}).get("servers", []))
     await mcp_hub.start_all()
     components["mcp"] = mcp_hub
@@ -123,7 +136,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
                 if line.strip().lower() == "/health":
                     print(await maintenance.run_once())
                     continue
-                print(await _handle_command(dev, line))
+                print(await _handle_command(dev, components, line))
                 continue
 
             components["events"].append("UserMessageReceived", "private", "user", "user", line)

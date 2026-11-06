@@ -124,6 +124,41 @@ async def _mcp_call_tool(
     return f"[untrusted MCP 结果] {out}"
 
 
+def _bili_search_tool(ctx: RunContext[ResidentDeps], query: str) -> str:
+    """在 B 站搜索视频（结果不可信，公开接口）。"""
+    adapter = (ctx.deps.adapters or {}).get("bilibili")
+    if adapter is None:
+        return "B站适配器未启用"
+    return adapter.search(query)
+
+
+def _bili_video_tool(ctx: RunContext[ResidentDeps], bvid: str) -> str:
+    """获取 B 站视频信息（结果不可信）。"""
+    adapter = (ctx.deps.adapters or {}).get("bilibili")
+    if adapter is None:
+        return "B站适配器未启用"
+    return adapter.video_info(bvid)
+
+
+async def _qq_send_tool(ctx: RunContext[ResidentDeps], user_id: str, text: str) -> str:
+    """给 QQ 用户发私信：需要人工审批后才真正发送。"""
+    adapter = (ctx.deps.adapters or {}).get("qq")
+    dev = ctx.deps.dev
+    if adapter is None or dev is None:
+        return "QQ 适配器或审批系统未启用"
+    approval_id = dev.approvals.submit(
+        f"给 QQ 用户 {user_id} 发消息：{text}",
+        resource=f"qq:{user_id}",
+        action="qq_send",
+    )
+
+    async def do_send():
+        await adapter.send_private(user_id, text)
+
+    adapter.register_send(approval_id, do_send)
+    return f"已提交审批（id={approval_id}）：向 {user_id} 发送「{text}」"
+
+
 class ResidentAgent:
     def __init__(self, cfg: dict, components: dict) -> None:
         m = cfg["model"]
@@ -222,6 +257,9 @@ class ResidentAgent:
                 _file_read_tool,
                 _mcp_list_tool,
                 _mcp_call_tool,
+                _bili_search_tool,
+                _bili_video_tool,
+                _qq_send_tool,
             ],
             retries=1,
         )

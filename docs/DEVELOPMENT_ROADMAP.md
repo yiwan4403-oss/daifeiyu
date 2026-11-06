@@ -75,9 +75,11 @@ Plugin SDK、Manifest、Capability Registry、Code Generator、Test Runner、Plu
 - [x] Adapter 统一协议（base.py）
 - [x] Browser 适配器（web_fetch，untrusted，证书降级）
 - [x] Windows 适配器（白名单 file_list/file_read）
-- [x] Minecraft/QQ/Bilibili 协议文档与骨架
-- [ ] Minecraft 实连（待服务器地址与机器人账号）
-- [ ] QQ / Bilibili 实连（待账号与风控评估）
+- [x] QQ 适配器（OneBot v11 反向 WS + L2 审批发送）
+- [x] Bilibili 适配器（wbi 签名搜索 + 视频信息）
+- [ ] Minecraft 实连（走 ToolDelta，待服务器就绪）
+- [ ] QQ 实连部署（需 NapCat/LLOneBot 等 OneBot 实现 + 账号）
+- [ ] Bilibili 登录态（私信/动态，需账号与风控评估）
 
 验收：所有平台共享相同身份、记忆和目标。（CLI/Browser/Windows 已共享同一核心）
 

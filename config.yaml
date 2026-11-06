@@ -36,3 +36,14 @@ life:
     start_hour: 8
     end_hour: 23
     min_gap_minutes: 60
+
+development:
+  test_timeout_seconds: 60
+  allowed_imports:
+    - json
+    - random
+    - math
+    - datetime
+    - re
+    - typing
+    - collections

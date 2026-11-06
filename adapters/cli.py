@@ -22,12 +22,44 @@ def _affinity_delta(text: str) -> float:
     return max(-0.2, min(0.2, d))
 
 
+async def _handle_command(dev, line: str) -> str:
+    parts = line.split()
+    cmd = parts[0].lower()
+    if cmd == "/plugins":
+        return (
+            f"已加载插件：{dev.loaded() or '无'}\n"
+            f"能力：{dev.capabilities() or '无'}\n"
+            f"工具：{dev.tools() or '无'}"
+        )
+    if cmd == "/pending":
+        pend = dev.pending()
+        if not pend:
+            return "没有待审批项"
+        return "\n".join(f"[{p['id']}] {p['action']} → {p['resource']}：{p['request']}" for p in pend)
+    if cmd == "/approve" and len(parts) == 2:
+        result = dev.approve(int(parts[1]), True)
+        return str(result)
+    if cmd == "/reject" and len(parts) == 2:
+        result = dev.approve(int(parts[1]), False)
+        return str(result)
+    if cmd == "/rollback" and len(parts) == 2:
+        return str(dev.rollback(parts[1]))
+    return "命令：/plugins /pending /approve <id> /reject <id> /rollback <插件id>"
+
+
 async def run_cli(components: dict, cfg: dict) -> None:
     components.setdefault("emotion", EmotionManager(components["conn"]))
     components.setdefault("relationships", RelationshipManager(components["conn"]))
     components.setdefault("beliefs", BeliefManager(components["conn"]))
     components.setdefault("autobiography", AutobiographyManager(cfg, components))
     components["last_user_ts"] = time.time()
+
+    from development.pipeline import DevPipeline
+    from extensions.registry import CapabilityRegistry
+
+    components.setdefault("registry", CapabilityRegistry())
+    components["dev"] = DevPipeline(cfg, components)
+    dev = components["dev"]
 
     arbiter = components.get("arbiter") or MemoryArbiter(cfg, components)
     arbiter.bind_emotion(components["emotion"])
@@ -60,6 +92,10 @@ async def run_cli(components: dict, cfg: dict) -> None:
             if line.lower() in ("exit", "quit"):
                 break
             components["last_user_ts"] = time.time()
+
+            if line.startswith("/"):
+                print(await _handle_command(dev, line))
+                continue
 
             components["events"].append("UserMessageReceived", "private", "user", "user", line)
             try:

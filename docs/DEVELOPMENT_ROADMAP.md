@@ -52,12 +52,21 @@ Desire / Goal / Scheduler / Activity / Reflection / 主动行为。
 
 验收：无用户消息时，能按自己的目标安排合理活动。（真机已演示：空闲 2h → 自主选择“学点新东西”并立下目标）
 
-## Phase 4：自主开发
+## Phase 4：自主开发（进行中）
 
-Plugin SDK、Manifest、Capability Registry、Code Generator、Test Runner、
-Plugin Loader、权限审批、版本回滚；MCP 2.3.0 接入外部工具。
+Plugin SDK、Manifest、Capability Registry、Code Generator、Test Runner、Plugin Loader、权限审批、版本回滚；MCP 后续接入。
 
-验收：给定一个缺失能力，Resident 能完成研究→开发→测试→受控部署。
+- [x] Plugin SDK / Manifest / Registry / Loader（版本目录 + 错误隔离）
+- [x] Development Engine：生成 → 白名单 → 沙箱测试 → 装配 → 审批 → 安装 → 回滚
+- [x] 研究工具（GitHub 搜索 + 只读抓取）
+- [x] 安全层（L0–L3 权限、审批、审计；模型不得自我批准）
+- [x] CLI 审批命令 + 她的能力工具（dev_request）
+- [x] 真机验收：掷骰子插件全链路跑通
+- [ ] MCP 2.3.0 接入（外部工具标准化）
+- [ ] 验收确认（管理者复核）
+
+验收：给定一个当前缺失的普通软件能力，Resident 能够完成研究、开发、测试和受控部署。
+（已真机演示：掷骰子插件 生成→测试→审批→安装→可调用）
 
 ## Phase 5：外部世界
 

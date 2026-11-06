@@ -1,4 +1,7 @@
 data/
 logs/
+workspace/
+sandbox/
+plugins/
 __pycache__/
 .pytest_cache/

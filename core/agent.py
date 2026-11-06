@@ -28,6 +28,7 @@ class ResidentDeps:
     relationships: object = None
     autobiography: object = None
     beliefs: object = None
+    dev: object = None
 
 
 def _remember_tool(ctx: RunContext[ResidentDeps], text: str) -> str:
@@ -40,6 +41,32 @@ def _recall_tool(ctx: RunContext[ResidentDeps], query: str) -> str:
     """检索自己的记忆。"""
     hits = ctx.deps.memory.search(query, 3)
     return "\n".join(hits) if hits else "没想起相关的事"
+
+
+def _capabilities_tool(ctx: RunContext[ResidentDeps]) -> str:
+    """查看自己已有的能力和工具。"""
+    dev = ctx.deps.dev
+    if dev is None:
+        return "开发引擎未启用"
+    caps = dev.capabilities()
+    tools = dev.tools()
+    return f"能力：{caps or '无'}；工具：{tools or '无'}"
+
+
+async def _dev_request_tool(ctx: RunContext[ResidentDeps], requirement: str) -> str:
+    """发现能力缺口时：生成插件、跑测试，然后提交人工审批。"""
+    dev = ctx.deps.dev
+    if dev is None:
+        return "开发引擎未启用"
+    result = await dev.develop(requirement)
+    if result["status"] == "proposed":
+        return (
+            f"我写了个插件「{result['plugin']}」v{result['version']}，"
+            f"测试已通过，等待批准（审批号 {result['approval_id']}）。"
+        )
+    if result["status"] == "rejected":
+        return f"我的方案被安全规则拦下：{result.get('detail')}"
+    return f"开发结果：{result['status']} —— {result.get('detail', '')}"
 
 
 class ResidentAgent:
@@ -66,6 +93,7 @@ class ResidentAgent:
             relationships=components.get("relationships"),
             autobiography=components.get("autobiography"),
             beliefs=components.get("beliefs"),
+            dev=components.get("dev"),
         )
         self._spent_today = 0.0
         self._current_user = "user"
@@ -127,7 +155,7 @@ class ResidentAgent:
             self._make(tier),
             deps_type=ResidentDeps,
             instructions=self._system,
-            tools=[_remember_tool, _recall_tool],
+            tools=[_remember_tool, _recall_tool, _capabilities_tool, _dev_request_tool],
             retries=1,
         )
         try:

@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [0.5.0] - 2026-11-06
+
+Phase 4 完成（自主开发引擎 v1）：
+
+- Plugin SDK：Manifest/Capability/ToolSpec + 受控 PluginContext
+- Registry：能力/工具索引，一个能力可多插件提供
+- Loader：版本目录式，启停/升级/降级/卸载/错误隔离
+- Development Engine：缺口→LLM 生成（reason 模型，16k 输出预算+flash 降级）→
+  依赖白名单（AST 级，禁止 os/subprocess 等）→ 沙箱 pytest（无测试不许装）→
+  版本化装配 → 审批（L2 人工）→ 安装注册 → 回滚
+- 研究工具：GitHub 仓库搜索 + 只读原文抓取（untrusted、限长）
+- 安全：PermissionManager(L0-L3) / ApprovalManager / AuditLog；模型不得自我批准
+- Agent 工具：list_capabilities / dev_request（她可自提插件开发请求）
+- CLI：/plugins /pending /approve /reject /rollback
+- 真机验收：她接到“掷骰子”需求 → 自写插件 → 测试通过 → 人工批准 → 安装 → 可用（掷出 2/2/6）
+- 测试：31/31
+
 ## [0.4.0] - 2026-11-06
 
 Phase 3 完成（自主生活 v1）：

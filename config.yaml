@@ -24,3 +24,15 @@ budget:
 
 loop:
   tick_seconds: 60
+
+life:
+  tick_seconds: 60
+  idle_minutes: 10
+  activity_interval_minutes: 30
+  max_decisions_per_hour: 6
+  reflect_every_activities: 8
+  proactive:
+    enabled: true
+    start_hour: 8
+    end_hour: 23
+    min_gap_minutes: 60

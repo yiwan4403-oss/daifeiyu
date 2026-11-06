@@ -106,6 +106,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     attempts INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS activities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    started_at REAL NOT NULL,
+    ended_at REAL,
+    summary TEXT DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts REAL, actor TEXT, action TEXT, resource TEXT, result TEXT, detail TEXT

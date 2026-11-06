@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [0.2.0] - 2026-11-06
+
+Phase 1 完成：
+
+- 编排层：PydanticAI 2.66（Agent + 工具循环 + 分级模型 chat/reason/light + 预算护栏）
+- 模型网关：base_url 统一、usage 统计落 model_usage 表
+- 记忆仲裁：LLM 裁决 ADD/UPDATE/DELETE/NOOP + 内容查重 + 五因子显著性（v1 简化）+ FADE 衰减状态机
+- CLI 适配器：adapters/cli.py（asyncio 循环，exit 退出）
+- FTS5 索引改为代码同步（本机 sqlite 不支持 fts5 'delete' 特令）
+- 真机验证：DeepSeek 端到端对话 + 记忆写入 + 检索通过
+- 测试：14/14 通过（仲裁/去重/显著性/衰减/预算/断点续接）
+
 ## [0.1.0] - 2026-11-06
 
 Phase 0 完成，最小骨架落地：

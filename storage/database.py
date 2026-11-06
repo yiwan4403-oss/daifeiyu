@@ -50,16 +50,11 @@ CREATE TABLE IF NOT EXISTS memories (
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(content, tokenize='unicode61');
 
-CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
-  INSERT INTO memory_fts(rowid, content) VALUES (new.id, new.content);
-END;
-CREATE TRIGGER IF NOT EXISTS memories_ad AFTER DELETE ON memories BEGIN
-  INSERT INTO memory_fts(memory_fts, rowid, content) VALUES ('delete', old.id, old.content);
-END;
-CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
-  INSERT INTO memory_fts(memory_fts, rowid, content) VALUES ('delete', old.id, old.content);
-  INSERT INTO memory_fts(rowid, content) VALUES (new.id, new.content);
-END;
+-- 本环境 sqlite 对 fts5 'delete' 特令报 SQL logic error：
+-- 索引同步改为代码维护（见 memory/manager.py），触发器一律移除。
+DROP TRIGGER IF EXISTS memories_ai;
+DROP TRIGGER IF EXISTS memories_ad;
+DROP TRIGGER IF EXISTS memories_au;
 
 CREATE TABLE IF NOT EXISTS relationships (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,7 +109,9 @@ CREATE TABLE IF NOT EXISTS model_usage (
 
 
 def open_db(path: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(path)
+    # check_same_thread=False：记忆仲裁经 asyncio.to_thread 在别的线程写库，
+    # 单进程顺序使用下安全；并发写保护由 Phase 2 锁机制补。
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn

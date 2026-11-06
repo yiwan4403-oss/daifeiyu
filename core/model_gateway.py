@@ -13,7 +13,10 @@ class GatewayError(Exception):
 
 class ModelGateway:
     def __init__(self, cfg: dict) -> None:
-        self.base_url = cfg["base_url"]
+        base = cfg["base_url"].rstrip("/")
+        if not base.endswith("/chat/completions"):
+            base += "/chat/completions"
+        self.base_url = base
         self.api_key = os.environ.get(cfg.get("api_key_env", "DEEPSEEK_API_KEY"), "")
         self.model = cfg["model"]
         self.timeout = int(cfg.get("timeout_seconds", 60))

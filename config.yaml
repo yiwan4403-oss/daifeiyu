@@ -5,12 +5,22 @@ resident:
 
 model:
   provider: "deepseek"
-  base_url: "https://api.deepseek.com/chat/completions"
+  base_url: "https://api.deepseek.com"
   api_key_env: "DEEPSEEK_API_KEY"
   model: "deepseek-flash"
   timeout_seconds: 60
   max_tokens: 300
   temperature: 0.9
+
+task_models:
+  chat: "deepseek-flash"
+  reason: "deepseek-v4-pro"
+  light: "deepseek-flash"
+
+budget:
+  daily_usd: 0.5
+  usd_per_mtok_in: 0.28
+  usd_per_mtok_out: 1.68
 
 loop:
   tick_seconds: 60

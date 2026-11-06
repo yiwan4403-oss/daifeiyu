@@ -10,11 +10,19 @@
 - [x] 四件套文档 + DATA_MODEL + SECURITY_MODEL + 本文件
 - [x] 最小工程骨架（任务 E）与验收（pytest 7/7 + 冒烟通过）
 
-## Phase 1：最小 Resident
+## Phase 1：最小 Resident（进行中）
 
 目标：启动系统、Model Gateway、Identity、基础对话、SQLite、Event Store、基础记忆、持久化。
 
-验收：**关闭并重新启动后，Resident 延续之前的身份和对话经历。**
+- [x] PydanticAI 编排层 + 工具循环 + 分级模型（chat/reason/light）
+- [x] 预算护栏（daily_usd）与 usage 统计
+- [x] 记忆仲裁 ADD/UPDATE/DELETE/NOOP + 查重 + 显著性 + FADE 衰减
+- [x] CLI 适配器 adapters/cli.py
+- [x] 断点续接测试（身份/记忆/事件重启延续）
+- [x] 真机 DeepSeek 端到端验证
+- [ ] 验收确认（管理者复核）
+
+验收：**关闭并重新启动后，Resident 延续之前的身份和对话经历。**（测试已覆盖，待实测复核）
 
 ## Phase 2：人格与长期记忆
 

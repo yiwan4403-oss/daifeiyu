@@ -367,20 +367,32 @@ class BilibiliAdapter(Adapter):
             params["w_rid"] = w_rid
         return params
 
-    def search(self, query: str, k: int = 5) -> str:
+    def search_items(self, query: str, k: int = 5) -> list[dict]:
+        """wbi 搜索，返回原始条目（供生物钟挑选）。"""
         params = self._signed_params(
             {"search_type": "video", "keyword": query, "page": 1, "page_size": k}
         )
         url = "https://api.bilibili.com/x/web-interface/wbi/search/type?" + urlencode(params)
         data = self._get(url)
         if "error" in data:
-            return f"[B站搜索失败] {data['error']}"
+            return []
         results = (data.get("data") or {}).get("result") or []
-        lines = [f"[untrusted B站搜索结果] 共 {len(results)} 条"]
-        for item in results[:k]:
-            lines.append(
-                f"- {re_clean(item.get('title',''))}（{item.get('bvid','?')}，播放 {item.get('play','?')}）"
-            )
+        return [
+            {
+                "title": re_clean(item.get("title", "")),
+                "bvid": item.get("bvid", "?"),
+                "play": item.get("play", 0),
+            }
+            for item in results
+        ]
+
+    def search(self, query: str, k: int = 5) -> str:
+        items = self.search_items(query, k)
+        if not items:
+            return "[B站搜索失败] 无结果或接口受限"
+        lines = [f"[untrusted B站搜索结果] 共 {len(items)} 条"]
+        for it in items[:k]:
+            lines.append(f"- {it['title']}（{it['bvid']}，播放 {it['play']}）")
         return "\n".join(lines)
 
     def video_info(self, bvid: str) -> str:

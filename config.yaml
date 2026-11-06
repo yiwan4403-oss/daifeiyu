@@ -68,3 +68,14 @@ bilibili:
     dm_cooldown_seconds: 60
     request_interval_seconds: 1.5
     backoff_steps: [300, 600, 1200, 1800]
+
+bili_daily:
+  window_start_hour: 20
+  window_end_hour: 24
+  max_share_per_day: 3
+  deep_read: 3
+  skip_chance: 0.3
+  topics:
+    - 我的世界
+    - 独立游戏
+    - 科普

@@ -78,7 +78,8 @@ Plugin SDK、Manifest、Capability Registry、Code Generator、Test Runner、Plu
 - [x] QQ 适配器（OneBot v11 反向 WS + L2 审批发送）
 - [x] Bilibili 适配器（wbi 签名搜索 + 视频信息）
 - [x] Bilibili 登录态（扫码登录 + 风控参数表 + me/dm 工具）
-- [ ] Bilibili 生物钟（随机醒/筛5深读2-3/分享≤3/沉默衰减，借 dsh-bili-whale 设计）
+- [x] Bilibili 生物钟（随机醒/筛5深读2-3/分享≤3/沉默衰减，借 dsh-bili-whale 设计）
+- [ ] Bilibili 双日记（给主人的信 + 不加滤镜的那本）
 - [ ] Minecraft 实连（走 ToolDelta，待服务器就绪）
 - [ ] QQ 实连部署（NapCat 已连；群聊策略待定）
 - [ ] Bilibili 私信专线（需双实名号互关，用户准备中）

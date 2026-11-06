@@ -135,6 +135,11 @@ async def run_cli(components: dict, cfg: dict) -> None:
     qq_cfg = cfg.get("qq", {})
     qq_owner_ids = [str(x) for x in (qq_cfg.get("owner_ids") or [])]
     qq_auto_reply = bool(qq_cfg.get("auto_reply", True))
+    components["qq_owner_ids"] = qq_owner_ids
+
+    from life.bili_daily import BiliDaily
+
+    components["bili_daily"] = BiliDaily(components, cfg)
 
     async def handle_user_message(scope: str, uid: str, text: str) -> None:
         """外部入口（QQ 等）来的消息：按人建上下文、记忆打归属、自动回复。"""

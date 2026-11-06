@@ -118,6 +118,16 @@ class Scheduler:
             self._last_say_ts = time.time()
             self.components["bus"].publish("proactive", say)
 
+        # B 站生物钟（独立于生活规划：窗口内随机醒、克制分享）
+        bili = self.components.get("bili_daily")
+        if bili is not None:
+            try:
+                note = await bili.maybe_run_async()
+                if note:
+                    print(f"[life] B站见闻：{note[:80]}")
+            except Exception as exc:
+                print(f"[life] B站日常失败：{exc}")
+
     async def run(self) -> None:
         while not self.stop.is_set():
             try:

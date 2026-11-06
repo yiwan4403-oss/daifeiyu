@@ -54,12 +54,38 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components.setdefault("autobiography", AutobiographyManager(cfg, components))
     components["last_user_ts"] = time.time()
 
+    from adapters.browser import BrowserAdapter
+    from adapters.windows import WindowsAdapter
+    from development.mcp_client import MCPHub
     from development.pipeline import DevPipeline
+    from development.self_maintenance import SelfMaintenance
     from extensions.registry import CapabilityRegistry
 
     components.setdefault("registry", CapabilityRegistry())
     components["dev"] = DevPipeline(cfg, components)
     dev = components["dev"]
+
+    components["adapters"] = {
+        "browser": BrowserAdapter(),
+        "windows": WindowsAdapter(cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"])),
+    }
+    mcp_hub = MCPHub((cfg.get("mcp") or {}).get("servers", []))
+    await mcp_hub.start_all()
+    components["mcp"] = mcp_hub
+
+    maintenance = SelfMaintenance(components)
+
+    async def maintenance_loop():
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                report = await maintenance.maybe_run()
+                if report:
+                    print(f"[life] 自我维护完成：{report['metrics']}")
+            except Exception as exc:
+                print(f"[life] 自我维护失败：{exc}")
+
+    maint_task = asyncio.create_task(maintenance_loop())
 
     arbiter = components.get("arbiter") or MemoryArbiter(cfg, components)
     arbiter.bind_emotion(components["emotion"])
@@ -94,6 +120,9 @@ async def run_cli(components: dict, cfg: dict) -> None:
             components["last_user_ts"] = time.time()
 
             if line.startswith("/"):
+                if line.strip().lower() == "/health":
+                    print(await maintenance.run_once())
+                    continue
                 print(await _handle_command(dev, line))
                 continue
 
@@ -120,10 +149,12 @@ async def run_cli(components: dict, cfg: dict) -> None:
     finally:
         scheduler.stop.set()
         sched_task.cancel()
+        maint_task.cancel()
         try:
-            await sched_task
-        except (asyncio.CancelledError, Exception):
+            await asyncio.gather(sched_task, maint_task, return_exceptions=True)
+        except Exception:
             pass
+        await mcp_hub.stop_all()
 
     components["emotion"].decay()
     components["memories"].consolidate()

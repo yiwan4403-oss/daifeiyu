@@ -62,20 +62,33 @@ Plugin SDK、Manifest、Capability Registry、Code Generator、Test Runner、Plu
 - [x] 安全层（L0–L3 权限、审批、审计；模型不得自我批准）
 - [x] CLI 审批命令 + 她的能力工具（dev_request）
 - [x] 真机验收：掷骰子插件全链路跑通
-- [ ] MCP 2.3.0 接入（外部工具标准化）
-- [ ] 验收确认（管理者复核）
+- [x] MCP 2.3.0 接入（stdio 客户端 + 真实 server 测试）
+- [x] 验收确认（管理者复核）
 
 验收：给定一个当前缺失的普通软件能力，Resident 能够完成研究、开发、测试和受控部署。
 （已真机演示：掷骰子插件 生成→测试→审批→安装→可调用）
 
-## Phase 5：外部世界
+## Phase 5：外部世界（进行中）
 
 优先顺序：Browser → Windows → Minecraft → QQ → Bilibili。
-所有平台共享同一身份/记忆/目标。
 
-## Phase 6：持续进化
+- [x] Adapter 统一协议（base.py）
+- [x] Browser 适配器（web_fetch，untrusted，证书降级）
+- [x] Windows 适配器（白名单 file_list/file_read）
+- [x] Minecraft/QQ/Bilibili 协议文档与骨架
+- [ ] Minecraft 实连（待服务器地址与机器人账号）
+- [ ] QQ / Bilibili 实连（待账号与风控评估）
 
-能力评估、长期行为分析、经验学习、插件维护、非核心模块的安全自我更新。
+验收：所有平台共享相同身份、记忆和目标。（CLI/Browser/Windows 已共享同一核心）
+
+## Phase 6：持续进化（进行中）
+
+- [x] 插件健康检查 + 异常自动禁用（审计留痕）
+- [x] 运行指标（调用数/token/费用/记忆/事件/活动）
+- [x] 经验学习（指标观察沉淀为 procedural 记忆）
+- [ ] 能力评估与长期行为分析（积累数据后迭代）
+
+验收：能够通过实际经历发现不足，并产生可验证的改进。
 
 ## 跨阶段待办（总纲 13.x）
 

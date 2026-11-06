@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [0.6.0] - 2026-11-06
+
+Phase 4 尾 + Phase 5/6 完成：
+
+- MCP 2.3.0 stdio 客户端（列工具/调工具，结果 untrusted）+ 真实 echo server 测试
+- 适配器层：统一 Adapter 协议；Browser（只读抓取，证书失败降级重试）；
+  Windows（白名单目录 list/read）；Minecraft/QQ/Bilibili 协议文档与骨架
+- Agent 新工具：web_fetch / file_list / file_read / mcp_list / mcp_call
+- 持续进化：SelfMaintenance（插件健康检查→异常自动禁用+审计）、运行指标、
+  经验沉淀为 procedural 记忆；/health 命令
+- 事件写入规范化（去控制字符，防乱码入库）
+- 真机验收：她自主用 web_fetch（https 失败自降 http）+ MCP echo 完成复合任务
+- 测试：36/36
+
 ## [0.5.0] - 2026-11-06
 
 Phase 4 完成（自主开发引擎 v1）：

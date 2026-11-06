@@ -47,3 +47,11 @@ development:
     - re
     - typing
     - collections
+
+mcp:
+  servers: []
+
+windows:
+  allowed_dirs:
+    - workspace
+    - data

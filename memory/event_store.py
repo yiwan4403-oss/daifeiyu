@@ -27,6 +27,9 @@ class EventStore:
         payload: str = "",
     ) -> int:
         ts = time.time()
+        payload = "".join(
+            c for c in payload if c in "\n\t" or (ord(c) >= 32 and ord(c) < 0xD800)
+        )  # 规范化：去控制字符/孤立代理（防 GBK 乱码入库）
         cur = self.conn.execute(
             "INSERT INTO events(ts, type, scope, source, actor, payload) VALUES (?,?,?,?,?,?)",
             (ts, event_type, scope, source, actor, payload),

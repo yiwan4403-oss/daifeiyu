@@ -57,20 +57,21 @@ Letta 不碰；Mem0 仅作第一周原型；框架层建议自建薄循环。
 
 ## 4. Letta（前 MemGPT）
 
-- 仓库：https://github.com/letta-ai/letta ｜ Apache-2.0 ｜ Python 3.10+
-- 规模：45 万行（server 核心 ~19.7 万行），200+ Alembic 迁移表，release 0.10.11（2026-10-29）
-- 性质：**完整自托管 agent 服务器**（REST+WS+Postgres/SQLite+自带 loop），不是可嵌入库
-- 记忆：blocks 键值分层（核心人格块/对话历史块/存档块）+ archival/recall
-- Windows：官方不支持（无 Windows CI）；Postgres 默认，SQLite 仅 file:// URI
-- 结论：**不作记忆底座**；仅借“分层 block 思路 + ARCHIVAL_INSERT 去重提示词”。
+- 仓库：https://github.com/letta-ai/letta ｜ Apache-2.0
+- **现状（补充核实）**：Python 服务器 0.16.8 已官宣退役，main 已迁往 TypeScript 的
+  letta-code；`pip install letta` 变成捆绑 Node 的 CLI → 不再适合嵌入
+- 仍值得抄：**schema 设计** —— Block + BlockHistory(undo/redo) + Passage(source_id 溯源)
+  + Message 事件日志
+- 结论：不采用代码；只借 schema 思路。
 
 ## 5. Mem0
 
-- 仓库：https://github.com/mem0ai/mem0 ｜ Apache-2.0 ｜ Python 3.8+ ｜ release 1.1.35（2026-11-03）
-- 性质：**纯库，pip 三行起步，本地 SQLite 开箱即用，Windows 完美**
-- 记忆：add() 时 LLM 仲裁 ADD/UPDATE/DELETE/NOOP；向量检索+过滤+rerank
-- 弱点：黑盒封装；每次插入都调 LLM（费用）；无原生时间衰减；依赖 ~480MB（onnxruntime+torch+ChromaDB）
-- 结论：**可作第一阶段快速原型验证器（验证记忆召回效果），不作长期底座**。
+- 仓库：https://github.com/mem0ai/mem0 ｜ Apache-2.0 ｜ Python
+- **v2.2.1 是 344KB 纯 Python 可嵌入库**（非早期 ~480MB 印象）：自带 LLM 抽取 → md5 去重 →
+  实体链接 → 语义+BM25+实体 boost 混合检索 → SQLite 全审计管线
+- 注意：主存是向量库而非 SQLite；冲突仅“关联”不自动裁决；六类记忆要靠 metadata 约定
+- 结论：**适合嵌入/仿写其管线**（抽取→去重→链接→混合检索→审计），schema 抄 Letta 的
+  Block/BlockHistory/Passage(source_id 溯源)/Message 事件日志；仍不作长期底座。
 
 ## 6. 记忆层总决策（详见 ARCHITECTURE_DECISIONS.md）
 

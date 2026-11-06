@@ -23,7 +23,7 @@
 | HerAndHim scheduler | APScheduler | 轻 |
 | Crescent Grove Wyrd | FAISS | 中；后期换 sqlite-vec |
 | PaulusAI vectorstore | ChromaDB | 中 |
-| Mem0（仅原型期） | onnxruntime + torch + ChromaDB | ~480MB，原型用完即卸 |
+| Mem0（原型期/仿写对象） | 纯 Python 344KB（v2.2.1），向量库为主 | 轻；原型或仿写管线 |
 
 ## 明确不引入
 

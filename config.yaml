@@ -1,0 +1,16 @@
+resident:
+  name: "大肥鱼"
+  data_dir: "data"
+  log_level: "INFO"
+
+model:
+  provider: "deepseek"
+  base_url: "https://api.deepseek.com/chat/completions"
+  api_key_env: "DEEPSEEK_API_KEY"
+  model: "deepseek-flash"
+  timeout_seconds: 60
+  max_tokens: 300
+  temperature: 0.9
+
+loop:
+  tick_seconds: 60

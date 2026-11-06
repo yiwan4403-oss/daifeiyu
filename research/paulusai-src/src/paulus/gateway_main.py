@@ -1,0 +1,68 @@
+"""Hermes-style messaging gateway entry point.
+
+  paulus-gateway          # after `pip install`
+
+Environment:
+  ANTHROPIC_API_KEY=sk-...                       (or another provider key)
+  TELEGRAM_BOT_TOKEN=...
+  TELEGRAM_ALLOWED_USERS=123456789,987654321     # optional allowlist
+  WEB_PORT=8080                                  # optional: serve the web UI
+"""
+import asyncio
+import os
+
+from . import config, mcp_client, vectorstore
+from .gateway.runner import GatewayRunner
+
+
+async def _main() -> None:
+    config.ensure_dirs()
+    vectorstore.init()
+    # Blocks while servers start; fine here, before any adapter is running.
+    if mcp_client.init():
+        print(f"MCP servers:\n{mcp_client.status()}\n")
+
+    runner = GatewayRunner()
+
+    if os.environ.get("TELEGRAM_BOT_TOKEN"):
+        from .gateway.platforms.telegram import TelegramAdapter
+        runner.register("telegram", TelegramAdapter(runner))
+
+    if os.environ.get("WEB_PORT"):
+        from .gateway.platforms.webui import WebAdapter
+        runner.register("web", WebAdapter(runner))
+
+    if not runner.has_adapters():
+        print(
+            "No platform adapters configured.\n"
+            "Set TELEGRAM_BOT_TOKEN to enable Telegram, and WEB_PORT for the web UI."
+        )
+        return
+
+    print("Starting Hermes gateway...")
+    await runner.start_all()
+    print(f"Adapters:\n{runner.status()}\n")
+    print("Running. Press Ctrl+C to stop.")
+
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        pass
+    finally:
+        print("\nShutting down...")
+        await runner.stop_all()
+        mcp_client.shutdown()
+        print("Done.")
+
+
+def run() -> None:
+    """Console-script entry point."""
+    try:
+        asyncio.run(_main())
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    run()

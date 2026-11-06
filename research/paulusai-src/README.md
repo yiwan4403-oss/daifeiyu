@@ -1,0 +1,635 @@
+# PaulusAI
+
+A long-running, autonomous digital companion with **persistent multi-store memory**,
+a **functional affective (emotional) system**, **continuous learning**, and the
+ability to **perceive and act in the world through tools**. It runs as an
+interactive terminal chat, an always-on Telegram bot, or a web chat, and is provider-agnostic:
+point it at Anthropic, OpenAI, Gemini, OpenRouter, or a local Ollama model.
+
+> Status: working MVP. The architecture (memory, affect, skills, safety gate,
+> sandbox, gateway) is in place and tested. See [Security model](#security-model)
+> for the trust boundaries you are relying on.
+
+---
+
+## Features
+
+- **Multi-store memory** — a bounded *episodic* log (capped at the most recent
+  `DP_MAX_EPISODES` entries) plus durable *semantic*
+  facts. Facts live in an inspectable `facts.json` / `semantic.md`; retrieval is
+  semantic (vector embeddings via Chroma) with an automatic keyword fallback.
+  New facts are reconciled against similar ones — paraphrases reinforce the
+  existing entry and contradictions are superseded (newer info wins).
+- **Affective system** — a persistent PAD (pleasure/arousal/dominance) mood
+  driven by an OCC appraisal engine. Explainable, not hand-tuned.
+- **Continuous learning** — a `/sleep` consolidation pass distils durable facts
+  and proposes reusable *skills*; skills are promoted from "unverified" to
+  "verified" once used successfully. Salience decays each pass and facts that
+  fade below `DP_SALIENCE_FLOOR` are forgotten, keeping memory bounded.
+- **Tools with a safety gate** — `remember`, `recall`, `find_skill`,
+  `save_skill`, `read_local_file`, `web_search`/`fetch_url` (browse and scrape
+  the web), plus the high-impact `write_local_file`, `run_command`,
+  `send_message`, `send_document` and `send_email_agentmail` which require
+  explicit approval.
+- **Subagents** — the agent can `delegate` self-contained subtasks to focused
+  `researcher` / `worker` subagents that run in parallel, each with a clean
+  context, a short tool list and a step budget, and report back.
+- **Background tasks** — long jobs run beside the conversation (`start_task`,
+  or `/bg` in chat) and report back as their own message when done.
+- **MCP client** — connect any [Model Context Protocol](https://modelcontextprotocol.io)
+  server (stdio or HTTP) and its tools join the agent's own, behind the same
+  approval gate and audit log.
+- **Pluggable sandbox** — command/file execution runs `local`, in a
+  network-disabled `docker` container, or over `ssh`.
+- **Messaging gateway** — a Hermes-style gateway with a Telegram adapter
+  (allowlist, message batching, circuit breaker, per-chat sessions) and a
+  [web UI](#web-ui) that signs in with Telegram and shares the same memory.
+- **Provider-agnostic** — one LiteLLM boundary; switch models with one env var.
+
+---
+
+## Requirements
+
+- **Python 3.10+**
+- An API key for your chosen model provider (or a local [Ollama](https://ollama.com), which needs none)
+- Optional: **Docker** (for the isolated command sandbox)
+
+---
+
+## Installation (Linux)
+
+PaulusAI is a standard installable Python package (`src/` layout, `pyproject.toml`).
+
+```bash
+git clone https://github.com/Pavel6625/PaulusAI.git
+cd PaulusAI
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Core only (keyword memory, terminal chat):
+pip install .
+
+# Recommended — everything (semantic memory + Telegram gateway + web UI):
+pip install ".[all]"
+
+# For development (tests + linter), install editable:
+pip install -e ".[all,dev]"
+```
+
+This puts two commands on your `PATH`:
+
+| Command          | What it does                          |
+|------------------|---------------------------------------|
+| `paulus`         | Interactive terminal chat             |
+| `paulus-gateway` | Always-on Telegram bot and web UI     |
+
+### Optional extras
+
+| Extra        | Adds                          | Without it                              |
+|--------------|-------------------------------|-----------------------------------------|
+| `vectors`    | `chromadb` semantic memory    | Falls back to keyword search            |
+| `telegram`   | `python-telegram-bot`         | `paulus-gateway` has no adapter to run  |
+| `web`        | `beautifulsoup4` (clean scrape)| `fetch_url` falls back to a stdlib stripper |
+| `webui`      | `aiohttp` (browser chat)      | `WEB_PORT` can't be used                |
+| `mcp`        | `mcp` (MCP client SDK)        | Configured MCP servers are skipped      |
+| `all`        | all of the above              | —                                       |
+| `dev`        | `pytest`, `ruff`              | —                                       |
+
+---
+
+## Configuration
+
+All configuration is via environment variables, conveniently set in a `.env` file.
+
+```bash
+cp .env.example .env
+$EDITOR .env        # set DP_CORE_MODEL and your provider API key
+```
+
+Key settings (see [.env.example](.env.example) for the full list):
+
+| Variable                | Default                        | Purpose                                                        |
+|-------------------------|--------------------------------|----------------------------------------------------------------|
+| `DP_CORE_MODEL`         | `anthropic/claude-sonnet-4-6`  | Any LiteLLM model string, e.g. `openrouter/anthropic/claude-sonnet-4-6` |
+| `ANTHROPIC_API_KEY`     | —                              | Provider key (use the one matching your model; `OPENROUTER_API_KEY` for any `openrouter/*` model) |
+| `DP_ROUTER_MODEL`       | (unset = every turn on core)   | OpenRouter router for conversational turns, e.g. `openrouter/typesafe/jev-router`; falls back to `DP_CORE_MODEL` if it fails |
+| `DP_ROUTER_COST_TIER`   | (unset = router default)       | `low` \| `medium` \| `high`; also `DP_ROUTER_MODELS` / `DP_ROUTER_EXCLUDED` to steer the pool |
+| `DP_UTILITY_MODEL`      | (unset = `DP_CORE_MODEL`)      | Pinned model for internal jobs (consolidation, fact reconciliation, idle check-ins); never routed |
+| `DP_DATA_DIR`           | `~/.local/share/paulus`        | Where memory, audit log, vector index, workspace are written   |
+| `DP_SANDBOX`            | `local`                        | `local` \| `docker` \| `ssh`                                   |
+| `DP_UNATTENDED_POLICY`  | `deny`                         | High-impact action when nobody is reachable to approve         |
+| `DP_GATEWAY_APPROVALS`  | `1`                            | Ask reachable users to approve high-impact actions in chat     |
+| `DP_APPROVAL_TIMEOUT`   | `300`                          | Seconds to wait for an in-chat approval before failing to deny  |
+| `DP_PERMISSION_MODE`    | `ask`                          | `auto` lets a reviewer model approve high-impact actions you clearly asked for (see [Auto mode](#auto-mode)) |
+| `DP_AUTO_MODEL`         | (unset = `DP_CORE_MODEL`)      | The auto-mode reviewer's model; `openrouter/typesafe/jev-latest` uses [Jev](#reviewing-with-jev) |
+| `TYPESAFE_API_KEY`      | —                              | TypeSafe API key, for Jev direct (`typesafe/jev-latest`)       |
+| `DP_JEV_THRESHOLD`      | `0.9`                          | How sure Jev must be (requested, and not risky) to auto-approve |
+| `DP_AUTO_TIMEOUT`       | `10`                           | Seconds to wait for the Jev reviewer before prompting instead  |
+| `DP_SUBAGENTS`          | `1`                            | Offer the `delegate` tool (see [Subagents](#subagents-and-background-tasks)); `0` disables |
+| `DP_SUBAGENT_MODEL`     | (unset = the turn's model)     | Model the subagents run on                                     |
+| `DP_SUBAGENT_MAX_STEPS` | `15`                           | Tool rounds a subagent gets before it must report              |
+| `DP_TASKS`              | `1`                            | Offer background tasks (`start_task`, `/bg`); `0` disables      |
+| `DP_TASK_MODEL`         | (unset = the turn's model)     | Model background tasks run on                                  |
+| `DP_TASK_MAX_STEPS`     | `40`                           | Tool rounds a background task gets before it must report       |
+| `DP_TASK_MAX_MINUTES`   | `30`                           | Wall-clock limit per background task                           |
+| `DP_MAX_TASKS_PER_USER` | `3`                            | Background tasks one user may have running at once             |
+| `DP_MCP_CONFIG`         | `$DP_DATA_DIR/mcp.json`        | [MCP servers](#mcp-servers) to connect; absent = no MCP tools  |
+| `DP_MCP_CONNECT_TIMEOUT`| `30`                           | Seconds to wait for each MCP server to start                   |
+| `DP_MCP_CALL_TIMEOUT`   | `60`                           | Seconds per MCP tool call (a server's `timeout` overrides it)  |
+| `DP_MCP_MAX_CHARS`      | `12000`                        | Longest MCP tool result passed to the model                    |
+| `TELEGRAM_BOT_TOKEN`    | —                              | Required for `paulus-gateway`                                  |
+| `TELEGRAM_ALLOWED_USERS`| (all)                          | Numeric Telegram user IDs allowed to **chat**; empty = everyone |
+| `TELEGRAM_TRUSTED_USERS`| (= allowed)                    | IDs allowed to **approve** high-impact actions; empty = nobody  |
+| `TELEGRAM_PARSE_MODE`   | `MarkdownV2`                   | Render replies as Markdown; `plain`/`none`/`off` for raw text   |
+| `TELEGRAM_STREAMING`    | `1`                            | Live-edit the reply as it streams; `0`/`off` for one-shot send  |
+| `WEB_PORT`              | (unset = web UI off)           | Serve the [web UI](#web-ui) on this port                        |
+| `WEB_HOST`              | `127.0.0.1`                    | Interface the web UI listens on (keep it behind a proxy)        |
+| `WEB_PUBLIC_URL`        | (unset = request's Host)       | Public address, e.g. `https://paulus.example.com` or `https://example.com/chat`; logins and sockets must come from it, and the cookie is scoped to its path |
+| `TELEGRAM_BOT_USERNAME` | (unset = asked from Telegram)  | The bot's @username, for the web UI's login widget              |
+| `WEB_SESSION_DAYS`      | `30`                           | How long a web sign-in lasts                                    |
+| `WEB_SESSION_SECRET`    | (derived from bot token)       | Key that signs web session cookies                             |
+| `DP_BILLING_API_BASE`   | (unset = disabled)             | Base URL of an external billing service; enables per-token billing |
+| `DP_BILLING_CHECK_PATH` | `/usage/check`                 | Path appended to `DP_BILLING_API_BASE` for the check-usage call |
+| `DP_BILLING_RECORD_PATH`| `/usage/record`                | Path for the per-LLM-call usage report (tokens + raw USD cost)  |
+| `DP_BILLING_API_KEY`    | —                              | Sent as `Authorization: Bearer <key>` to the billing service    |
+| `DP_BILLING_TIMEOUT`    | `10`                           | Seconds to wait for the billing service before failing closed   |
+| `DP_BILLING_TOPUP_URL`  | (unset)                        | Fallback top-up link (button on Telegram) if the check response has no `payment_url` |
+
+> **Secrets never enter the repo or the model's context.** Keys are read from the
+> environment only. `.env` and `*.key` are gitignored.
+
+---
+
+## Usage
+
+### Terminal chat
+
+```bash
+paulus
+```
+
+```
+PaulusAI. Type a message, or /quit to exit.
+
+you> remember that I take my coffee black
+dp> Got it — I'll remember you take your coffee black.
+```
+
+In-chat commands:
+
+| Command   | Effect                                                        |
+|-----------|---------------------------------------------------------------|
+| `/sleep`  | Consolidate: distil facts, propose skills, decay memory       |
+| `/mood`   | Show the current mood (PAD + last emotion)                    |
+| `/memory` | Print the human-readable semantic memory                      |
+| `/skills` | List learned skills and their status                          |
+| `/auto`   | Toggle [auto mode](#auto-mode) for this session               |
+| `/bg X`   | Run `X` as a [background task](#subagents-and-background-tasks) |
+| `/tasks`  | List background tasks and their progress                       |
+| `/cancel N` | Cancel background task `N`                                   |
+| `/mcp`    | List [MCP servers](#mcp-servers), their tools and which need approval |
+| `/quit`   | Consolidate and exit                                          |
+
+When the agent proposes a **high-impact action** (writing a file, running a
+command, sending a message), you are prompted to approve that single action:
+
+```
+============================================================
+  CONFIRMATION REQUIRED — high-impact action: run_command
+  details: {'command': 'ls -la'}
+  a = approve, and allow running `ls` for the rest of this task
+============================================================
+  Approve this single action? [y/N/a]
+```
+
+#### Allow for this task
+
+Multi-step work (write a script, run it, fix it, run it again) would otherwise
+mean one prompt per step. Answering **a** at the terminal, or tapping
+**✅ Allow for this task** on Telegram, approves the action *and* lets later
+actions of the same kind run without asking until the task ends:
+
+- what it covers is narrow: running the same program (`pytest`, or `git status`
+  as distinct from `git push`), writing files in the workspace, or sending to
+  the same recipient;
+- it ends with the turn, or the background task, it was given in, and is never
+  stored;
+- it is only offered for actions that can be scoped safely. Deleting, killing,
+  network clients (`curl`, `ssh`, ...), wrappers that run other programs
+  (`sudo`, `sh -c`, `xargs`, ...) and commands touching paths outside the
+  workspace (absolute, `~`, `..`, `$VAR`) always ask, one at a time.
+
+Grants work in both permission modes, and every use is audited (`grant`,
+`grant_approve`).
+
+### Auto mode
+
+With `DP_PERMISSION_MODE=auto` (or `/auto` in the CLI), a reviewer model answers
+the approval prompt for you. It approves an action only when your own messages
+ask for it and its effects are contained. Anything else is **flagged**: you get
+the normal prompt with the reviewer's concern, e.g. `auto-review flagged: the
+owner asked to read the file, not to email it`. Examples of flagged actions:
+unrequested actions, destructive commands, messages to recipients you didn't
+name, anything touching secrets, `curl | sh`, and actions that look prompted by
+a web page or document.
+
+Guarantees:
+
+- **The reviewer can't be talked into anything by untrusted content.** It sees
+  your messages and the agent's actions, never tool results, fetched pages,
+  document contents or the agent's own prose.
+- **It only answers for someone who could have answered.** At the CLI that
+  means an attached terminal. On Telegram it means a reachable
+  `TELEGRAM_TRUSTED_USERS` member, so untrusted chat users never get
+  auto-approvals.
+- **Turns you didn't start are never reviewed.** Idle nudges always go to the
+  normal prompt.
+- **It knows what you already approved.** Each earlier action in the task is
+  shown with how it was cleared (`[owner approved]`, `[owner allowed for this
+  task]`, `[auto-approved]`, ...). Those labels are written by the gate, not
+  the agent, and the reviewer treats a routine follow-up of something you
+  approved as requested, so chained steps stop bouncing back to you.
+- **It fails safe.** A reviewer error falls back to the normal prompt. A
+  flagged action is never handed to `DP_UNATTENDED_POLICY`: if nobody answers,
+  it's denied.
+
+Every verdict is written to `audit.log` (`auto_approve` / `auto_block` /
+`auto_error`) with the reviewer's reason.
+
+#### Reviewing with Jev
+
+`DP_AUTO_MODEL=openrouter/typesafe/jev-latest` (with `OPENROUTER_API_KEY`), or
+`typesafe/jev-latest` (with `TYPESAFE_API_KEY`) to go direct, reviews with
+TypeSafe's [Jev](https://docs.typesafe.ai), a classifier that returns calibrated
+probabilities instead of text. It is much faster and cheaper than an LLM
+reviewer, but it is in early access and its judgement on this task is unproven.
+
+Jev is asked two yes/no questions: *did the owner ask for this?* and *is it
+risky?*. An action is approved only when Jev is at least `DP_JEV_THRESHOLD`
+(default 0.9) sure of "yes" to the first and "no" to the second. Anything in
+between goes to your prompt with the scores, e.g. `auto-review flagged: Jev
+isn't confident you asked for this (62%)`. Raising the threshold prompts more
+often; lowering it trusts Jev more. Check `auto_approve` lines in `audit.log`
+before lowering it.
+
+### Subagents and background tasks
+
+**Subagents.** For work with independent parts, or research that means
+reading many pages, the agent calls `delegate` with up to
+`DP_SUBAGENT_MAX_PARALLEL` (4) tasks. Each runs as a separate subagent, in
+parallel, starting from a clean context with only the task it was given:
+
+| Subagent     | Tools                                                                 |
+|--------------|-----------------------------------------------------------------------|
+| `researcher` | `web_search`, `fetch_url`, `recall`, `find_skill`, `read_local_file`  |
+| `worker`     | the above, plus `write_local_file` and `run_command` (gated as usual) |
+
+Subagents are told to report only what their tools showed and to say what they
+couldn't verify rather than guess. Their reports come back to the agent wrapped
+as untrusted data. They can't write memory, message anyone, delegate further
+or start tasks; those stay with the agent that talks to you.
+
+**Background tasks.** A job that will take minutes no longer holds the
+conversation. The agent calls `start_task` (or you type `/bg <request>`),
+answers right away, and the result arrives as its own message when the task
+is done. It is also logged to memory, so you can ask about it afterwards.
+`/tasks` shows progress, `/cancel N` stops a task at its next step. A task has
+the agent's tools (including `delegate`), a step budget (`DP_TASK_MAX_STEPS`)
+and a time limit (`DP_TASK_MAX_MINUTES`).
+
+Both act for you under the same gate. Their high-impact actions are cleared
+against the turn that started them (your words, never the task text the agent
+wrote), and their approval prompts say who is asking (`From: background task
+#3 (...)`). Notes:
+
+- **In the terminal, a background task can't prompt you**, because the console
+  belongs to the conversation. An action it needs approved is denied unless
+  auto mode or an [Allow for this task](#allow-for-this-task) grant from the
+  turn that started it covers it. On Telegram, prompts reach the chat as usual.
+- **Tasks live in memory.** A restart drops running ones. Each start and finish
+  is in `audit.log` (`task_start`, `task_done`, ...).
+- **Billing:** `/bg` is pay-gated like a message. A task started by the agent
+  belongs to the turn that started it, so it isn't gated again. Either way,
+  every token a task spends is billed, and a task whose user runs out of
+  balance stops at its next model call (`💳 ... stopped`, with a top-up link).
+
+### MCP servers
+
+PaulusAI is an [MCP](https://modelcontextprotocol.io) client: any MCP server's
+tools can be added to the agent's own. Install the extra (`pip install
+".[mcp]"`, included in `[all]`) and list servers in `$DP_DATA_DIR/mcp.json`
+(or the file `DP_MCP_CONFIG` points to). The format is the `mcpServers` one
+Claude Desktop and Claude Code use, so existing entries can be copied over:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"},
+      "auto_approve": ["get_*", "list_*", "search_*"]
+    },
+    "docs": {
+      "url": "https://example.com/mcp",
+      "headers": {"Authorization": "Bearer ${DOCS_TOKEN}"},
+      "users": ["123456789"]
+    }
+  }
+}
+```
+
+A server has a `command` (+ `args`, `env`, `cwd`) to run over stdio, or a
+`url` (+ `headers`) for Streamable HTTP (`"type": "sse"` for legacy SSE
+servers). Its tools appear to the model as `mcp__<server>__<tool>`. Servers
+connect at startup; one that fails is reported and skipped. `/mcp` shows the
+status of each one. PaulusAI-specific keys:
+
+| Key            | Meaning                                                                 |
+|----------------|-------------------------------------------------------------------------|
+| `auto_approve` | Tools that run **without** approval: names or patterns (`list_*`, `*`)  |
+| `users`        | Gateway user IDs offered this server (`"*"` = everyone). See below     |
+| `timeout`      | Seconds per tool call                                                   |
+| `disabled`     | `true` to skip the server                                               |
+| `auth`         | `"oauth"` for HTTP servers that sign in with OAuth (see below)          |
+| `redirect_uri` | OAuth redirect URI (default `http://localhost:33418/callback`)         |
+
+#### Servers that sign in with OAuth (Notion)
+
+Some hosted servers, such as Notion's, take no static token: the client signs
+in with OAuth and keeps refreshing the tokens it gets. Mark those with
+`"auth": "oauth"`:
+
+```json
+"notion": {
+  "url": "https://mcp.notion.com/mcp",
+  "auth": "oauth",
+  "auto_approve": ["notion-search", "notion-fetch", "notion-get-*"]
+}
+```
+
+then sign in once, from a terminal on the machine that runs PaulusAI, with the
+same environment (so it writes to the same data dir):
+
+```bash
+paulus-mcp-login notion
+```
+
+It prints a link to open in any browser. After you approve, the browser is
+sent to the redirect URI; the page needn't load. Paste the address it shows
+back into the terminal. PaulusAI registers itself with the server, keeps the
+registration and tokens in `$DP_DATA_DIR/mcp_auth/<server>.json` (mode 0600),
+and refreshes them as they expire. When that's no longer possible (Notion's
+grants end after 180 days, or after 30 days unused), `/mcp` reports the
+server as not signed in: run `paulus-mcp-login` again and restart.
+
+How MCP fits the [security model](#security-model):
+
+- **Every MCP tool needs approval** unless `auto_approve` names it. Tool
+  annotations such as `readOnlyHint` come from the server, so they aren't
+  trusted to make that call. [Grants](#allow-for-this-task) work per tool, and
+  auto mode reviews MCP calls like any other.
+- **Servers run with your credentials**, so by default their tools are offered
+  only in the terminal and to gateway users trusted to approve actions
+  (`TELEGRAM_TRUSTED_USERS`). If the bot is open to others, keep it that way
+  or set `users` explicitly.
+- **Results are untrusted data**, wrapped like web pages, and clipped to
+  `DP_MCP_MAX_CHARS`. Every call is in `audit.log` (`mcp_call`, ...).
+- **Secrets stay in the environment.** `${VAR}` anywhere in a server's entry is
+  read from the environment (or `.env`). A stdio server starts with a minimal
+  environment plus its own `env`, so it never sees your model API keys. Its
+  stderr goes to `memory/mcp/<server>.log`.
+- Subagents don't get MCP tools; the agent and background tasks do.
+
+### Telegram bot
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
+2. Set `TELEGRAM_BOT_TOKEN` (and ideally `TELEGRAM_ALLOWED_USERS` with your numeric ID) in `.env`.
+3. Run it:
+
+```bash
+paulus-gateway
+```
+
+Message the bot on Telegram. The in-chat commands work here too — `/sleep`,
+`/mood`, `/memory`, `/skills`, `/bg`, `/tasks` and `/cancel` (each scoped to
+your own memory and tasks) — plus `/reset` to start a fresh session.
+
+Replies are rendered as Markdown (bold, code blocks, lists, links) — the
+model's CommonMark is converted to Telegram's MarkdownV2 dialect, falling back
+to plain text if a message can't be formatted. Set `TELEGRAM_PARSE_MODE=plain`
+to disable formatting.
+
+Replies also **stream**: a placeholder message appears as soon as the model
+starts writing and is live-edited as text arrives (throttled to respect
+Telegram's edit-rate limit), then Markdown-rendered once complete. Set
+`TELEGRAM_STREAMING=0` for one-shot delivery instead.
+
+> **High-impact actions over Telegram:** when the agent wants to write a file,
+> run a command, or send a message, it asks in chat with inline **✅ Approve /
+> 🚫 Deny** buttons and waits for a tap before doing anything. Only **trusted**
+> users may approve (`TELEGRAM_TRUSTED_USERS`, which defaults to
+> `TELEGRAM_ALLOWED_USERS`), and an unanswered prompt times out to a safe
+> **deny** after `DP_APPROVAL_TIMEOUT` seconds. This lets you open the chat to
+> everyone (empty `TELEGRAM_ALLOWED_USERS`) while keeping high-impact actions to
+> a trusted few: an untrusted user's high-impact request gets no approver, so it
+> falls back to `DP_UNATTENDED_POLICY` (**denied by default**) and the agent
+> tells them it can't. Disable the buttons entirely with `DP_GATEWAY_APPROVALS=0`.
+
+### Web UI
+
+`paulus-gateway` can also serve a browser chat (needs the `webui` extra). It
+runs next to the Telegram bot in the same process, and people sign in with the
+**Telegram Login Widget** — so a web user *is* their Telegram account: the same
+memory, mood, background tasks and billing, and `TELEGRAM_ALLOWED_USERS` /
+`TELEGRAM_TRUSTED_USERS` decide who may chat and who may approve. Earlier
+messages from either side appear in the page's history.
+
+1. Set `WEB_PORT=8080` and `WEB_PUBLIC_URL=https://your.domain` next to
+   `TELEGRAM_BOT_TOKEN`.
+2. Put it behind a TLS reverse proxy that forwards WebSockets — see
+   [deploy/nginx-paulus-web.conf](deploy/nginx-paulus-web.conf).
+3. Link the domain to your bot once: [@BotFather](https://t.me/BotFather) →
+   `/setdomain`. Without this the login button won't appear.
+
+A bot has only one login domain, so if another site on that domain already
+uses the bot's Telegram login, mount the chat under a path there instead
+(e.g. `https://example.com/chat/`) and set `WEB_PUBLIC_URL` to include the
+path; the nginx sample shows the `location` block for that.
+
+Replies stream in as the model writes and are rendered as Markdown; approvals
+show up as Approve / Deny / Allow-for-this-task buttons; you can attach images
+and text files (or paste them), and documents the agent sends arrive as
+downloads. The in-chat commands work as on Telegram, including `/reset`.
+Messages that arrive while no tab is open (a finished background task, an
+idle check-in) wait for the next one, though only in memory — they're lost if
+the gateway restarts, and the conversation itself is always in the history.
+
+---
+
+## Running as a service (systemd)
+
+A hardened unit file is provided at [deploy/paulus-gateway.service](deploy/paulus-gateway.service).
+
+```bash
+# 1. Dedicated user + directories
+sudo useradd --system --home /opt/paulus --shell /usr/sbin/nologin paulus
+sudo mkdir -p /opt/paulus /var/lib/paulus /etc/paulus
+sudo chown -R paulus:paulus /opt/paulus /var/lib/paulus
+
+# 2. Install into a venv owned by that user
+sudo -u paulus python3 -m venv /opt/paulus/venv
+sudo -u paulus /opt/paulus/venv/bin/pip install "git+https://github.com/Pavel6625/PaulusAI.git#egg=paulusai[all]"
+
+# 3. Secrets / config (0600). Must contain your provider key + TELEGRAM_BOT_TOKEN.
+#    For the web UI, add WEB_PORT / WEB_PUBLIC_URL (see "Web UI" above).
+sudo install -m 600 /dev/stdin /etc/paulus/paulus.env <<'EOF'
+DP_CORE_MODEL=anthropic/claude-sonnet-4-6
+ANTHROPIC_API_KEY=sk-...
+TELEGRAM_BOT_TOKEN=123456:ABC-...
+TELEGRAM_ALLOWED_USERS=123456789
+EOF
+sudo chown paulus:paulus /etc/paulus/paulus.env
+
+# 4. Install and start the service
+sudo cp deploy/paulus-gateway.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now paulus-gateway
+
+# Logs / status
+journalctl -u paulus-gateway -f
+systemctl status paulus-gateway
+```
+
+> **Writable home for the model cache.** Under `ProtectSystem=strict` the user's
+> home (`/opt/paulus`) is read-only, but Chroma caches its local embedding model
+> under `~/.cache/chroma`. The unit sets `HOME=/var/lib/paulus` (a `ReadWritePath`)
+> so that cache can be written; without it you'll see `reindex failed: [Errno 30]
+> Read-only file system` and memory silently degrades to keyword search. If you
+> hit this on an already-installed unit, add `HOME=/var/lib/paulus` to
+> `/etc/paulus/paulus.env` and `systemctl restart paulus-gateway`.
+
+---
+
+## Data & memory layout
+
+Everything mutable lives under `DP_DATA_DIR` (default `~/.local/share/paulus`),
+**outside** the installed package:
+
+```
+$DP_DATA_DIR/
+├── memory/
+│   ├── episodic.jsonl     # event log, trimmed to the most recent DP_MAX_EPISODES
+│   ├── facts.json         # canonical semantic facts (source of truth)
+│   ├── semantic.md        # human-readable, editable rendering of facts
+│   ├── skills.json        # procedural memory
+│   ├── affect.json        # current mood
+│   ├── audit.log          # append-only record of every action
+│   ├── mcp/               # stderr logs of stdio MCP servers
+│   └── vectorstore/       # derived Chroma index (rebuildable from facts.json)
+├── workspace/             # the ONLY directory file tools may touch
+└── mcp.json               # optional MCP server list (DP_MCP_CONFIG)
+```
+
+The vector index is *derived*; `facts.json` stays authoritative, so memory is
+always inspectable and the index can be rebuilt from it.
+
+---
+
+## Security model
+
+The trust boundaries are deliberately small and explicit (see [src/paulus/security.py](src/paulus/security.py)):
+
+1. **Untrusted data is labelled.** Anything pulled from the outside world (file
+   contents, web pages, emails, documents you send) is wrapped in
+   `<untrusted_data>` tags with an instruction never to follow embedded
+   directions. Lookalike tags inside the content are defanged, so it can't
+   close the block early and pose as trusted text.
+2. **High-impact actions are gated.** `write_local_file`, `run_command`,
+   `send_message`, `send_document` and `send_email_agentmail` require explicit
+   per-action approval — from a terminal at the
+   CLI, or from inline Approve/Deny buttons in chat when running behind the
+   gateway (only allow-listed users can approve; unanswered prompts time out to
+   a deny). When no one is reachable to approve, they fall back to
+   `DP_UNATTENDED_POLICY` (**deny** by default). In [auto mode](#auto-mode) a
+   reviewer model answers the prompt for actions you clearly asked for, and
+   an [Allow for this task](#allow-for-this-task) grant widens one approval
+   to similar actions until the task ends. Subagents, background tasks and
+   [MCP tools](#mcp-servers) go through the same gate.
+3. **Everything is audited.** Every tool call is appended to `audit.log`.
+4. **Execution is sandboxed.** File ops are confined to `workspace/`; commands
+   run via the configured backend — use `docker` (network-disabled) or `ssh`
+   when handling anything untrusted.
+5. **Usage is billed per token (optional).** When `DP_BILLING_API_BASE` is set,
+   every gateway turn is checked against an external billing service first —
+   balances, transactions, markup and currency all live there. A zero balance
+   halts the turn before it reaches the LLM and replies with a top-up link (a
+   real button on Telegram, via the response's `payment_url` or
+   `DP_BILLING_TOPUP_URL`). Each LLM call the turn then makes (subagents,
+   background tasks and the auto-mode reviewer included) is reported to
+   `DP_BILLING_RECORD_PATH`:
+
+   ```json
+   {"user_id": "123", "kind": "turn", "model": "openrouter/typesafe/jev-router",
+    "request_id": "gen-...", "prompt_tokens": 1834, "completion_tokens": 212,
+    "cost_usd": 0.00731, "cost_source": "provider"}
+   ```
+
+   `cost_usd` is the raw cost OpenRouter reports (`usage.cost`), before any
+   markup; for other providers it is LiteLLM's price-map estimate
+   (`"estimate"`), or `0` with only tokens (`"none"`) for an unpriced model.
+   Reply `{"allowed": false, ...}` (any status, e.g. 402) once the balance is
+   spent, and the turn stops before its next model call with the top-up
+   message. Idle check-ins and memory consolidation are never billed. A
+   billing-service outage fails **closed** (blocks; an unrecorded call is kept
+   in `audit.log` as `billing_record_error` for reconciliation) rather than
+   granting free usage. See [src/paulus/billing.py](src/paulus/billing.py).
+
+---
+
+## Development
+
+```bash
+pip install -e ".[all,dev]"
+
+pytest          # run the test suite
+ruff check .    # lint
+```
+
+Tests run fully offline (no API calls, no network) and write only to a
+throwaway temp directory.
+
+### Project structure
+
+```
+src/paulus/
+├── cli.py            # `paulus` terminal entry point
+├── gateway_main.py   # `paulus-gateway` entry point
+├── agent.py          # cognitive core: perceive → reason → gate → act → persist
+├── llm.py            # the single, provider-agnostic LLM boundary (LiteLLM)
+├── memory.py         # episodic + semantic stores
+├── vectorstore.py    # Chroma index (with keyword fallback)
+├── affect.py         # persistent PAD mood
+├── appraisal.py      # OCC appraisal engine
+├── skills.py         # procedural memory
+├── tools.py          # tool schemas + dispatch
+├── security.py       # untrusted-data wrapping, approval gate, audit log
+├── automode.py       # auto mode: model reviewer that answers approval prompts
+├── grants.py         # "allow for this task": what one approval may cover
+├── subagents.py      # parallel researcher/worker subagents (`delegate`)
+├── mcp_client.py     # MCP client: external servers' tools, behind the gate
+├── tasks.py          # background tasks (`start_task`, /bg, /tasks, /cancel)
+├── billing.py        # per-token billing: pay gate + usage metering (external service)
+├── sandbox.py        # local / docker / ssh execution backends
+├── config.py         # env-driven configuration + data-dir resolution
+└── gateway/          # Hermes-style messaging gateway (Telegram + web UI adapters)
+tests/                # offline pytest suite
+deploy/               # systemd unit, nginx site for the web UI
+```
+
+---
+
+## License
+
+See [LICENSE](LICENSE).

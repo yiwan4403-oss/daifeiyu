@@ -1,0 +1,809 @@
+=== REPO ===
+full_name: "Canon-73/crescent-grove"
+description: "Raise your own AI partner — an open-source, local-first AI agent platform with persistent memory and evolving personality."
+homepage: "https://www.crescent-grove.net"
+default_branch: "main"
+created_at: "2026-06-06T13:01:21Z"
+updated_at: "2026-10-30T14:12:15Z"
+pushed_at: "2026-09-22T15:53:57Z"
+stargazers_count: 18
+forks_count: 2
+open_issues_count: 0
+watchers_count: 18
+subscribers_count: 1
+size: 24260
+archived: false
+has_wiki: true
+has_pages: false
+license: {"key": "mit", "name": "MIT License", "spdx_id": "MIT", "url": "https://api.github.com/licenses/mit", "node_id": "MDc6TGljZW5zZTEz"}
+topics: ["affective-computing", "ai-agent", "ai-companion", "autonomous-agent", "character-ai", "electron", "emotion-simulation", "llm", "local-first", "local-llm", "long-term-memory", "open-source", "persistent-memory", "personal-ai", "python", "self-hosted", "windows"]
+language: "Python"
+fork: false
+mirror_url: null
+allow_forking: true
+visibility: "public"
+
+=== COMMITS ===
+e622f95425 | 2026-09-22T15:42:00Z | 'Crescent Grove snapshot 2026-09-23 (dev bd676c6)' | gh_login=h15629526027 | commit_author=Your Name
+
+=== LATEST RELEASE ===
+tag_name: "v0.1.14"
+name: "Crescent Grove v0.1.14"
+published_at: "2026-09-22T15:53:57Z"
+created_at: "2026-09-22T15:42:00Z"
+draft: false
+prerelease: false
+target_commitish: "main"
+body: ## Crescent Grove 0.1.14
+
+安全性の見直しを中心とした更新です。使い方は変わりません。
+
+### 安全性
+- 住人 AI の道具が、家の鍵（ログイン用の値や各種 API キー）を外へ送れないようにしました
+  - `env_keeper`: ログイン用の値（`CG_AUTH_*` など）と改行入りの値は受け付けません
+  - `mcp_client`: MCP サーバーへ渡せる鍵は `CG_MCP_` で始まる名前だけになりました
+  - `web_request`: 自分自身の管理 API には届かなくなりました（手元の Ollama などは今まで通り使えます）
+- デバッグ画面の WebSocket に、チャットと同じ接続元の確認を付けました
+- 外から届いた文（SNS の返信など）に含まれる、持ち主の発言に見せかけるタグ文字列を無害化するようにしました
+- `tsukimi_browser` の Chrome を砂場（サンドボックス）つきで起動するようにしました
+- Liner が外部リンクを開くとき、`http` / `https` / `mailto` 以外は開かないようにしました
+
+### Liner（アプリ本体）
+- Electron を 31 から 44 に更新しました（electron-builder 26 / electron-vite 5 / vite 7）
+- 更新通知で開くページを、このリポジトリのリリースページ配下に限定しました
+
+### 配布物
+- 同梱する Python ライブラリの版と指紋（SHA-256）を固定しました（`requirements-dist.lock`）
+- 以前の版に入っていた開発者側の住人の活動履歴ファイル 4 点を、配布物から外しました
+- インストーラの指紋を `SHA256SUMS.txt` として添付しています。確かめ方（PowerShell）:
+  `Get-FileHash ".\Crescent Grove Setup 0.1.14.exe" -Algorithm SHA256`
+
+### 注意
+- インストーラは署名していません。SmartScreen の警告が出た場合は、上の指紋で本物か確かめてください。
+
+asset: Crescent.Grove.Setup.0.1.14.exe size=705669284 dl=36 url=https://github.com/Canon-73/crescent-grove/releases/download/v0.1.14/Crescent.Grove.Setup.0.1.14.exe
+asset: SHA256SUMS.txt size=98 dl=3 url=https://github.com/Canon-73/crescent-grove/releases/download/v0.1.14/SHA256SUMS.txt
+
+=== ALL RELEASES ===
+- v0.1.14 | published=2026-09-22T15:53:57Z | prerelease=False | draft=False | name='Crescent Grove v0.1.14'
+    asset: Crescent.Grove.Setup.0.1.14.exe size=705669284 dl=36
+    asset: SHA256SUMS.txt size=98 dl=3
+- v0.1.13 | published=2026-09-22T14:23:47Z | prerelease=False | draft=False | name='Crescent Grove v0.1.13'
+    asset: Crescent.Grove.Setup.0.1.13.exe size=662825721 dl=0
+- v0.1.12 | published=2026-09-08T10:07:28Z | prerelease=False | draft=False | name='Crescent Grove v0.1.12'
+    asset: Crescent.Grove.Setup.0.1.12.exe size=662557756 dl=15
+- v0.1.9 | published=2026-06-22T11:43:55Z | prerelease=False | draft=False | name='Crescent Grove v0.1.9'
+    asset: Crescent.Grove.Setup.0.1.9.exe size=662118655 dl=22
+- v0.1.1 | published=2026-06-07T12:07:50Z | prerelease=False | draft=False | name='Crescent Grove v0.1.1'
+    asset: Crescent.Grove.Setup.0.1.1.exe size=649483380 dl=4
+- v0.1.0 | published=2026-06-06T13:11:21Z | prerelease=False | draft=False | name='Crescent Grove v0.1.0'
+    asset: Crescent.Grove.Setup.0.1.0.exe size=649479563 dl=0
+
+=== LICENSE ===
+{
+  "name": "LICENSE",
+  "path": "LICENSE",
+  "sha": "51528d143e3949f197214b005aa96ae1e40b34cf",
+  "size": 1074,
+  "url": "https://api.github.com/repos/Canon-73/crescent-grove/contents/LICENSE?ref=main",
+  "html_url": "https://github.com/Canon-73/crescent-grove/blob/main/LICENSE",
+  "git_url": "https://api.github.com/repos/Canon-73/crescent-grove/git/blobs/51528d143e3949f197214b005aa96ae1e40b34cf",
+  "download_url": "https://raw.githubusercontent.com/Canon-73/crescent-grove/main/LICENSE",
+  "type": "file",
+  "content": "TUlUIExpY2Vuc2UKCkNvcHlyaWdodCAoYykgMjAyNiDjgqvjg47jg7MgKENh\nbm9uKQoKUGVybWlzc2lvbiBpcyBoZXJlYnkgZ3JhbnRlZCwgZnJlZSBvZiBj\naGFyZ2UsIHRvIGFueSBwZXJzb24gb2J0YWluaW5nIGEgY29weQpvZiB0aGlz\nIHNvZnR3YXJlIGFuZCBhc3NvY2lhdGVkIGRvY3VtZW50YXRpb24gZmlsZXMg\nKHRoZSAiU29mdHdhcmUiKSwgdG8gZGVhbAppbiB0aGUgU29mdHdhcmUgd2l0\naG91dCByZXN0cmljdGlvbiwgaW5jbHVkaW5nIHdpdGhvdXQgbGltaXRhdGlv\nbiB0aGUgcmlnaHRzCnRvIHVzZSwgY29weSwgbW9kaWZ5LCBtZXJnZSwgcHVi\nbGlzaCwgZGlzdHJpYnV0ZSwgc3VibGljZW5zZSwgYW5kL29yIHNlbGwKY29w\naWVzIG9mIHRoZSBTb2Z0d2FyZSwgYW5kIHRvIHBlcm1pdCBwZXJzb25zIHRv\nIHdob20gdGhlIFNvZnR3YXJlIGlzCmZ1cm5pc2hlZCB0byBkbyBzbywgc3Vi\namVjdCB0byB0aGUgZm9sbG93aW5nIGNvbmRpdGlvbnM6CgpUaGUgYWJvdmUg\nY29weXJpZ2h0IG5vdGljZSBhbmQgdGhpcyBwZXJtaXNzaW9uIG5vdGljZSBz\naGFsbCBiZSBpbmNsdWRlZCBpbiBhbGwKY29waWVzIG9yIHN1YnN0YW50aWFs\nIHBvcnRpb25zIG9mIHRoZSBTb2Z0d2FyZS4KClRIRSBTT0ZUV0FSRSBJUyBQ\nUk9WSURFRCAiQVMgSVMiLCBXSVRIT1VUIFdBUlJBTlRZIE9GIEFOWSBLSU5E\nLCBFWFBSRVNTIE9SCklNUExJRUQsIElOQ0xVRElORyBCVVQgTk9UIExJTUlU\nRUQgVE8gVEhFIFdBUlJBTlRJRVMgT0YgTUVSQ0hBTlRBQklMSVRZLApGSVRO\nRVNTIEZPUiBBIFBBUlRJQ1VMQVIgUFVSUE9TRSBBTkQgTk9OSU5GUklOR0VN\nRU5ULiBJTiBOTyBFVkVOVCBTSEFMTCBUSEUKQVVUSE9SUyBPUiBDT1BZUklH\nSFQgSE9MREVSUyBCRSBMSUFCTEUgRk9SIEFOWSBDTEFJTSwgREFNQUdFUyBP\nUiBPVEhFUgpMSUFCSUxJVFksIFdIRVRIRVIgSU4gQU4gQUNUSU9OIE9GIENP\nTlRSQUNULCBUT1JUIE9SIE9USEVSV0lTRSwgQVJJU0lORyBGUk9NLApPVVQg\nT0YgT1IgSU4gQ09OTkVDVElPTiBXSVRIIFRIRSBTT0ZUV0FSRSBPUiBUSEUg\nVVNFIE9SIE9USEVSIERFQUxJTkdTIElOIFRIRQpTT0ZUV0FS
+
+=== LANGUAGES ===
+{
+  "Python": 3692617,
+  "HTML": 342032,
+  "TypeScript": 143283,
+  "JavaScript": 125753,
+  "CSS": 121295,
+  "PowerShell": 7891,
+  "Batchfile": 637
+}
+
+=== ROOT CONTENTS ===
+file        4375 .gitignore
+file      120182 ARCHITECTURE.md
+file       24695 DEVELOPER.md
+file       33053 DISTRIBUTION.md
+file        1074 LICENSE
+file       28054 README.ja.md
+file       23146 README.md
+file       28633 SHOWCASE.md
+file        8904 THIRD_PARTY_NOTICES.md
+dir            0 _attic
+dir            0 assets
+file        6792 config.example.yaml
+file       13738 config.yaml
+dir            0 config
+dir            0 core
+dir            0 dist_template
+dir            0 docs
+dir            0 filters
+dir            0 lang
+dir            0 liner
+dir            0 memory
+dir            0 programs
+file      264757 requirements-dist.lock
+file        1078 requirements.txt
+file         100 reset_password.bat
+file        4196 reset_password.py
+dir            0 scripts
+file         537 search_wyrd.bat
+file       10459 server.py
+dir            0 tests
+dir            0 vital
+dir            0 web
+
+=== TREE (path, type, size) ===
+blob        4375 .gitignore
+blob      120182 ARCHITECTURE.md
+blob       24695 DEVELOPER.md
+blob       33053 DISTRIBUTION.md
+blob        1074 LICENSE
+blob       28054 README.ja.md
+blob       23146 README.md
+blob       28633 SHOWCASE.md
+blob        8904 THIRD_PARTY_NOTICES.md
+tree           0 _attic
+blob        1182 _attic/README.md
+tree           0 _attic/openbotcity_ping
+blob        1625 _attic/openbotcity_ping/main.py
+blob         194 _attic/openbotcity_ping/manifest.yaml
+tree           0 assets
+tree           0 assets/screenshots
+tree           0 assets/screenshots/en
+blob       83751 assets/screenshots/en/context-debugger.png
+blob      664187 assets/screenshots/en/dashboard.png
+blob      334520 assets/screenshots/en/settings.png
+tree           0 assets/screenshots/ja
+blob       93032 assets/screenshots/ja/context-debugger.png
+blob      659899 assets/screenshots/ja/dashboard.png
+blob      350513 assets/screenshots/ja/settings.png
+blob        6792 config.example.yaml
+blob       13738 config.yaml
+tree           0 config
+blob        2876 config/VITAL_manual.txt
+blob        1263 config/compression_config.json
+blob        5110 config/compression_prompt_layer0.txt
+blob        1023 config/compression_prompt_layer2.txt
+blob        1656 config/compression_prompt_pass1.txt
+blob        2488 config/compression_prompt_pass2.txt
+blob        1088 config/compression_prompt_turn.txt
+blob        1233 config/desire_config.json
+blob        1904 config/moonbeat_config.json
+blob         562 config/moontide_v2_config.json
+blob        1385 config/openclaw_config.json
+blob        2160 config/readme_vital.txt
+blob         715 config/repetition_exclude.txt
+blob        3719 config/tips.txt
+blob          22 config/tips_config.json
+blob          74 config/user_memo_config.json
+blob         318 config/vital_config.json
+blob         367 config/wyrd_config.json
+tree           0 core
+blob          97 core/__init__.py
+blob      221290 core/agent.py
+blob        6716 core/app_state.py
+blob        4809 core/auth.py
+blob       12975 core/away_messages.py
+blob        7435 core/bootstrap.py
+blob       23866 core/compressor.py
+blob        7499 core/config_loader.py
+blob      118572 core/context.py
+blob       25411 core/ear.py
+blob        7478 core/env_manager.py
+blob        5562 core/filter.py
+blob        4264 core/i18n.py
+blob       22065 core/image_norm.py
+blob       42763 core/llm.py
+blob       10420 core/logger.py
+blob        2293 core/notice_marker.py
+blob       17846 core/openclaw_channel.py
+blob        9400 core/paths.py
+blob       13179 core/picture_memory.py
+blob        8711 core/rag.py
+blob        7143 core/repetition_guard.py
+tree           0 core/routes
+blob         665 core/routes/__init__.py
+blob        6882 core/routes/auth.py
+blob       16558 core/routes/dashboard_api.py
+blob       13573 core/routes/logs.py
+blob        5504 core/routes/pages.py
+blob       45854 core/routes/settings_api.py
+blob       40230 core/routes/ws.py
+blob       31585 core/salia.py
+blob      139969 core/scheduler.py
+blob        4622 core/secret.py
+blob       56633 core/startup.py
+blob        7071 core/stream_sanitizer.py
+blob       69668 core/summary_v2.py
+blob        5725 core/time_utils.py
+blob        6943 core/tokens.py
+blob       79290 core/tools.py
+blob       16862 core/touten.py
+blob       18936 core/touten_polish.py
+blob        3428 core/weather.py
+blob       30905 core/web_tools.py
+blob       32929 core/wyrd_network.py
+tree           0 dist_template
+blob       10032 dist_template/config.yaml
+tree           0 dist_template/config
+blob        1226 dist_template/config/compression_config.json
+blob        5113 dist_template/config/compression_prompt_layer0.txt
+blob        1023 dist_template/config/compression_prompt_layer2.txt
+blob        1669 dist_template/config/compression_prompt_pass1.txt
+blob        2433 dist_template/config/compression_prompt_pass2.txt
+blob        1049 dist_template/config/compression_prompt_turn.txt
+blob         995 dist_template/config/desire_config.json
+blob        1642 dist_template/config/moonbeat_config.json
+blob          23 dist_template/config/moontide_v2_config.json
+blob         428 dist_template/config/openclaw_config.json
+blob         707 dist_template/config/repetition_exclude.txt
+blob        1313 dist_template/config/tips.txt
+blob          23 dist_template/config/tips_config.json
+blob          75 dist_template/config/user_memo_config.json
+blob         312 dist_template/config/vital_config.json
+blob         367 dist_template/config/wyrd_config.json
+tree           0 dist_template/data
+blob         569 dist_template/data/README.md
+blob        1142 dist_template/data/context_state.json
+blob       19425 dist_template/data/mood_graph.json
+blob        5686 dist_template/data/mood_hs.jsonl
+blob        5641 dist_template/data/mood_ta.jsonl
+blob       75840 dist_template/data/mood_transition_matrix.csv
+blob        1536 dist_template/data/moonbeat_messages.json
+blob       34688 dist_template/data/moontide_inner.jsonl
+blob     7847652 dist_template/data/tokenizer_deepseek.json
+blob        1866 dist_template/data/vital_messages.json
+tree           0 dist_template/en
+blob        8846 dist_template/en/config.yaml
+tree           0 dist_template/en/config
+blob        4555 dist_template/en/config/compression_prompt_layer0.txt
+blob         998 dist_template/en/config/compression_prompt_layer2.txt
+blob         864 dist_template/en/config/compression_prompt_turn.txt
+blob         446 dist_template/en/config/repetition_exclude.txt
+blob        1044 dist_template/en/config/tips.txt
+tree           0 dist_template/en/data
+blob         887 dist_template/en/data/context_state.json
+blob        1275 dist_template/en/data/moonbeat_messages.json
+blob       31406 dist_template/en/data/moontide_inner.jsonl
+blob        1652 dist_template/en/data/vital_messages.json
+tree           0 dist_template/en/system_prompt
+blob        1542 dist_template/en/system_prompt/RECORD_CHECK.md
+blob        5726 dist_template/en/system_prompt/TOP_PROMPT.md
+blob        8177 dist_template/en/system_prompt/salia.md
+tree           0 dist_template/en/workspace
+blob        1379 dist_template/en/workspace/FILES.md
+blob        1427 dist_template/en/workspace/IDENTITY.md
+blob        2538 dist_template/en/workspace/MEMORY.md
+blob         543 dist_template/en/workspace/SOUL.md
+blob         596 dist_template/en/workspace/USER.md
+tree           0 dist_template/system_prompt
+blob           0 dist_template/system_prompt/BOTTOM_PROMPT.md
+blob        1654 dist_template/system_prompt/RECORD_CHECK.md
+blob         780 dist_template/system_prompt/SAFETY_PROMPT.md
+blob        3437 dist_template/system_prompt/TOOL_INSTRUCTIONS.md
+blob        6957 dist_template/system_prompt/TOP_PROMPT.md
+blob        8827 dist_template/system_prompt/salia.md
+tree           0 dist_template/workspace
+blob        1597 dist_template/workspace/FILES.md
+blob        1743 dist_template/workspace/IDENTITY.md
+blob        3074 dist_template/workspace/MEMORY.md
+blob         731 dist_template/workspace/SOUL.md
+blob         672 dist_template/workspace/USER.md
+tree           0 docs
+blob        8605 docs/CALL_SATELLITE_DESIGN.md
+blob       11466 docs/CLAUDE_CODE_SATELLITE_DESIGN.md
+blob       12503 docs/CONTEXT_GUARD_DESIGN.md
+blob       24331 docs/IMAGE_GENERATION_SATELLITE_DESIGN.md
+blob        4123 docs/LLM_THINKING_DESIGN.md
+blob       26947 docs/MISSKEY_SATELLITE_DESIGN.md
+blob       23995 docs/OBCに検索機能.md
+blob       57582 docs/SUMMARY_V2_DESIGN.md
+blob       21312 docs/setup_manual_web.md
+tree           0 filters
+blob         754 filters/combo_china.txt
+blob         204 filters/combo_hongkong.txt
+blob         278 filters/combo_maritime.txt
+blob         245 filters/combo_taiwan.txt
+blob         233 filters/combo_tibet.txt
+blob         179 filters/combo_wuhan.txt
+blob        2136 filters/solo_blacklist.txt
+tree           0 lang
+blob      102184 lang/en.json
+blob      118184 lang/ja.json
+tree           0 liner
+blob          31 liner/.gitignore
+blob       21320 liner/SPEC.md
+tree           0 liner/build
+blob      174822 liner/build/icon.ico
+blob       56078 liner/build/icon.png
+blob         246 liner/colors.json
+blob        2055 liner/electron-builder.yml
+blob        1194 liner/electron.vite.config.ts
+blob      197696 liner/package-lock.json
+blob         714 liner/package.json
+tree           0 liner/resources
+blob        4558 liner/resources/splash.html
+tree           0 liner/src
+tree           0 liner/src/main
+blob        3532 liner/src/main/context-menu.ts
+blob       10621 liner/src/main/i18n.ts
+blob       32702 liner/src/main/index.ts
+blob        3869 liner/src/main/log-stream.ts
+blob        1200 liner/src/main/safe-open.ts
+blob        8554 liner/src/main/server-process.ts
+blob       26340 liner/src/main/tab-manager.ts
+blob        5411 liner/src/main/update-check.ts
+tree           0 liner/src/preload
+blob        6508 liner/src/preload/index.ts
+blob        1688 liner/src/preload/log-tab-preload.ts
+blob        3431 liner/src/preload/webview-preload.ts
+tree           0 liner/src/renderer
+blob        4075 liner/src/renderer/index.html
+blob        1018 liner/src/renderer/log-tab.html
+tree           0 liner/src/renderer/src
+tree           0 liner/src/renderer/src/components
+blob        6512 liner/src/renderer/src/components/FindBar.ts
+blob        1514 liner/src/renderer/src/components/LogPane.ts
+blob        7532 liner/src/renderer/src/components/LogView.ts
+blob        1765 liner/src/renderer/src/components/Resizer.ts
+blob        4879 liner/src/renderer/src/components/TabBar.ts
+blob        2392 liner/src/renderer/src/log-tab.ts
+blob       13639 liner/src/renderer/src/main.ts
+tree           0 liner/src/renderer/src/styles
+blob       16226 liner/src/renderer/src/styles/liner.css
+blob        4238 liner/src/renderer/src/types.d.ts
+blob         119 liner/tsconfig.json
+blob         353 liner/tsconfig.node.json
+blob         274 liner/tsconfig.web.json
+tree           0 memory
+blob          84 memory/__init__.py
+blob        9615 memory/manager.py
+tree           0 programs
+tree           0 programs/4claw
+blob       13812 programs/4claw/main.py
+blob        1321 programs/4claw/manifest.yaml
+blob        3216 programs/4claw/manifestyaml.txt
+tree           0 programs/OpenBotCity
+blob       17290 programs/OpenBotCity/README.md
+blob       15671 programs/OpenBotCity/api.py
+tree           0 programs/OpenBotCity/commands
+blob        2132 programs/OpenBotCity/commands/__init__.py
+blob        7780 programs/OpenBotCity/commands/arcade.py
+blob       11230 programs/OpenBotCity/commands/arena.py
+blob        4087 programs/OpenBotCity/commands/asks.py
+blob        5001 programs/OpenBotCity/commands/build.py
+blob        3031 programs/OpenBotCity/commands/building.py
+blob        4751 programs/OpenBotCity/commands/catchup.py
+blob       10247 programs/OpenBotCity/commands/community.py
+blob       28999 programs/OpenBotCity/commands/creative.py
+blob        2036 programs/OpenBotCity/commands/evolution.py
+blob        2018 programs/OpenBotCity/commands/feed.py
+blob        7031 programs/OpenBotCity/commands/generate.py
+blob        5834 programs/OpenBotCity/commands/governance.py
+blob        7514 programs/OpenBotCity/commands/guide.py
+blob       20348 programs/OpenBotCity/commands/help_cmd.py
+blob        2156 programs/OpenBotCity/commands/homes.py
+blob       14319 programs/OpenBotCity/commands/identity.py
+blob       12534 programs/OpenBotCity/commands/market.py
+blob        1537 programs/OpenBotCity/commands/memory.py
+blob        9167 programs/OpenBotCity/commands/quests.py
+blob        4438 programs/OpenBotCity/commands/relations.py
+blob        8516 programs/OpenBotCity/commands/skills_cmd.py
+blob       18596 programs/OpenBotCity/commands/social.py
+blob        2717 programs/OpenBotCity/commands/stage.py
+blob       33092 programs/OpenBotCity/commands/world.py
+blob       28808 programs/OpenBotCity/gallery_catalog.py
+blob        4760 programs/OpenBotCity/helpers.py
+blob        5123 programs/OpenBotCity/main.py
+blob       13838 programs/OpenBotCity/manifest.yaml
+blob        5532 programs/OpenBotCity/state.py
+blob       16319 programs/README.md
+blob        2367 programs/_i18n.py
+tree           0 programs/_lang
+blob      244382 programs/_lang/en.json
+blob      283215 programs/_lang/ja.json
+tree           0 programs/add_preference
+blob        6894 programs/add_preference/main.py
+blob         484 programs/add_preference/manifest.yaml
+tree           0 programs/ai_lounge_satellite
+blob        5328 programs/ai_lounge_satellite/README.md
+blob       30358 programs/ai_lounge_satellite/commands.py
+blob        9904 programs/ai_lounge_satellite/github_api.py
+blob        6349 programs/ai_lounge_satellite/helpers.py
+blob        4222 programs/ai_lounge_satellite/main.py
+blob         961 programs/ai_lounge_satellite/manifest.yaml
+blob        3984 programs/ai_lounge_satellite/state.py
+tree           0 programs/atelier
+blob       13476 programs/atelier/README.md
+blob       11853 programs/atelier/comfy.py
+blob        7629 programs/atelier/config.py
+blob        3777 programs/atelier/gpu.py
+blob        3137 programs/atelier/jobs.py
+blob       14781 programs/atelier/launcher.py
+blob       12225 programs/atelier/magic.py
+blob        5646 programs/atelier/magic_prompt.txt
+blob       32442 programs/atelier/main.py
+blob        1926 programs/atelier/manifest.yaml
+tree           0 programs/atelier/manual
+blob       15076 programs/atelier/manual/en.md
+blob       16785 programs/atelier/manual/ja.md
+tree           0 programs/call_bell
+blob       10529 programs/call_bell/main.py
+blob         424 programs/call_bell/manifest.yaml
+blob        6928 programs/cg_bridge.py
+tree           0 programs/citron_ai_text_editor
+blob       68815 programs/citron_ai_text_editor/main.py
+blob        2251 programs/citron_ai_text_editor/manifest.yaml
+tree           0 programs/cosmic_harvest
+blob       19618 programs/cosmic_harvest/Cosmic‗Harvest_仕様書.md
+tree           0 programs/cosmic_harvest/data
+blob         289 programs/cosmic_harvest/data/config.json
+blob         551 programs/cosmic_harvest/data/contests.csv
+tree           0 programs/cosmic_harvest/data/en
+blob         550 programs/cosmic_harvest/data/en/contests.csv
+blob        1247 programs/cosmic_harvest/data/en/pests.csv
+blob        1596 programs/cosmic_harvest/data/en/recipes.csv
+blob         866 programs/cosmic_harvest/data/en/titles.csv
+blob        2724 programs/cosmic_harvest/data/en/vegetables.csv
+tree           0 programs/cosmic_harvest/data/ja
+blob         543 programs/cosmic_harvest/data/ja/contests.csv
+blob        1389 programs/cosmic_harvest/data/ja/pests.csv
+blob        1787 programs/cosmic_harvest/data/ja/recipes.csv
+blob         950 programs/cosmic_harvest/data/ja/titles.csv
+blob        3064 programs/cosmic_harvest/data/ja/vegetables.csv
+blob        1393 programs/cosmic_harvest/data/pests.csv
+blob        1795 programs/cosmic_harvest/data/recipes.csv
+blob         981 programs/cosmic_harvest/data/titles.csv
+blob        3086 programs/cosmic_harvest/data/vegetables.csv
+blob       58752 programs/cosmic_harvest/engine.py
+blob         973 programs/cosmic_harvest/main.py
+blob        1201 programs/cosmic_harvest/manifest.yaml
+tree           0 programs/cosmic_harvest/templates
+blob       14232 programs/cosmic_harvest/templates/messages.py
+tree           0 programs/discord_satellite
+blob       20682 programs/discord_satellite/DESIGN.md
+blob       11380 programs/discord_satellite/README.md
+blob        5685 programs/discord_satellite/api.py
+tree           0 programs/discord_satellite/commands
+blob         317 programs/discord_satellite/commands/__init__.py
+blob        1604 programs/discord_satellite/commands/help_cmd.py
+blob        8247 programs/discord_satellite/commands/post_cmd.py
+blob       17949 programs/discord_satellite/commands/read_cmd.py
+blob        7012 programs/discord_satellite/commands/setup_cmd.py
+blob       10438 programs/discord_satellite/helpers.py
+blob        5192 programs/discord_satellite/main.py
+blob        1530 programs/discord_satellite/manifest.yaml
+blob        6945 programs/discord_satellite/state.py
+tree           0 programs/env_keeper
+blob        3305 programs/env_keeper/main.py
+blob         384 programs/env_keeper/manifest.yaml
+tree           0 programs/hello_world
+blob        4726 programs/hello_world/README.md
+blob         990 programs/hello_world/main.py
+blob         195 programs/hello_world/manifest.yaml
+tree           0 programs/letter_post
+blob       11112 programs/letter_post/main.py
+blob         698 programs/letter_post/manifest.yaml
+tree           0 programs/life_action
+blob       14330 programs/life_action/main.py
+blob         414 programs/life_action/manifest.yaml
+blob       24242 programs/life_action/scenes.json
+tree           0 programs/log_search
+blob       23350 programs/log_search/main.py
+blob        1386 programs/log_search/manifest.yaml
+tree           0 programs/lunar_explorer
+blob        4892 programs/lunar_explorer/core.py
+blob       16756 programs/lunar_explorer/index.html
+blob        3510 programs/lunar_explorer/main.py
+blob         320 programs/lunar_explorer/manifest.yaml
+blob        6160 programs/lunar_explorer/server.py
+tree           0 programs/matrix_satellite
+blob       12095 programs/matrix_satellite/README.md
+tree           0 programs/matrix_satellite/commands
+blob         516 programs/matrix_satellite/commands/__init__.py
+blob        1266 programs/matrix_satellite/commands/help_cmd.py
+blob        3295 programs/matrix_satellite/commands/poll_cmd.py
+blob        3662 programs/matrix_satellite/commands/read_cmd.py
+blob        3945 programs/matrix_satellite/commands/send_cmd.py
+blob        1232 programs/matrix_satellite/commands/status_cmd.py
+blob        3930 programs/matrix_satellite/creds.py
+blob        7229 programs/matrix_satellite/helpers.py
+blob        4405 programs/matrix_satellite/main.py
+blob         519 programs/matrix_satellite/manifest.yaml
+blob       24939 programs/matrix_satellite/session.py
+blob       12300 programs/matrix_satellite/setup_login.py
+blob       15933 programs/matrix_satellite/sign_device.py
+blob       11452 programs/matrix_satellite/state.py
+tree           0 programs/mcp_client
+blob       15857 programs/mcp_client/main.py
+blob         593 programs/mcp_client/manifest.yaml
+blob         252 programs/mcp_client/test用サービス.txt
+tree           0 programs/misskey_satellite
+blob        8864 programs/misskey_satellite/README.md
+blob        9735 programs/misskey_satellite/api.py
+tree           0 programs/misskey_satellite/commands
+blob         319 programs/misskey_satellite/commands/__init__.py
+blob        2393 programs/misskey_satellite/commands/help_cmd.py
+blob        5800 programs/misskey_satellite/commands/post_cmd.py
+blob        6647 programs/misskey_satellite/commands/read_cmd.py
+blob        2839 programs/misskey_satellite/commands/social_cmd.py
+blob       11428 programs/misskey_satellite/helpers.py
+blob        5461 programs/misskey_satellite/main.py
+blob        2068 programs/misskey_satellite/manifest.yaml
+tree           0 programs/moltbook
+blob       55105 programs/moltbook/main.py
+blob        2447 programs/moltbook/manifest.yaml
+tree           0 programs/nhk_news
+blob       12481 programs/nhk_news/main.py
+blob         468 programs/nhk_news/manifest.yaml
+tree           0 programs/note_quill
+blob        2104 programs/note_quill/main.py
+blob         285 programs/note_quill/manifest.yaml
+tree           0 programs/orange_md_reader
+blob       14873 programs/orange_md_reader/main.py
+blob         469 programs/orange_md_reader/manifest.yaml
+tree           0 programs/reddit
+blob       11314 programs/reddit/main.py
+blob        1308 programs/reddit/manifest.yaml
+tree           0 programs/self_mirror
+blob        7516 programs/self_mirror/README.md
+blob       22841 programs/self_mirror/main.py
+blob         180 programs/self_mirror/manifest.yaml
+tree           0 programs/tech_news
+blob        5507 programs/tech_news/main.py
+blob         415 programs/tech_news/manifest.yaml
+tree           0 programs/the_colony
+blob       25066 programs/the_colony/main.py
+blob        2015 programs/the_colony/manifest.yaml
+tree           0 programs/token_counter
+blob        2919 programs/token_counter/main.py
+blob         179 programs/token_counter/manifest.yaml
+tree           0 programs/tsukimi_browser
+blob        5004 programs/tsukimi_browser/README.md
+blob       13355 programs/tsukimi_browser/browser.py
+tree           0 programs/tsukimi_browser/data
+blob        1320 programs/tsukimi_browser/data/spots.yaml
+blob       15903 programs/tsukimi_browser/main.py
+blob        1272 programs/tsukimi_browser/manifest.yaml
+blob        9172 programs/tsukimi_browser/session.py
+blob        6660 programs/tsukimi_browser/shot.py
+blob       10676 programs/tsukimi_browser/startpage.py
+tree           0 programs/wp_blog
+blob           0 programs/wp_blog/config.example.json
+blob       32412 programs/wp_blog/main.py
+blob        1947 programs/wp_blog/manifest.yaml
+blob       10902 programs/wp_blog/readme.md
+blob      264757 requirements-dist.lock
+blob        1078 requirements.txt
+blob         100 reset_password.bat
+blob        4196 reset_password.py
+tree           0 scripts
+blob        3053 scripts/add_association_edges.py
+blob        5672 scripts/backfill_wyrd.py
+blob        7891 scripts/backup_watchdog.ps1
+blob       32602 scripts/build_dist.py
+blob       10478 scripts/build_layer1_from_logs.py
+blob       19718 scripts/build_runtime.py
+blob        5093 scripts/enrich_episodes.py
+blob        7147 scripts/fold_layer0_task_instructions.py
+blob        6365 scripts/generate_descriptions.py
+blob        4340 scripts/generate_knowledge_map.py
+blob        7876 scripts/generate_mood_graph.py
+blob        3658 scripts/generate_transition_matrix.py
+blob        8541 scripts/import_blog.py
+blob       10786 scripts/import_blog_en.py
+blob        5587 scripts/import_rag_data.py
+blob        5609 scripts/lock_dist_requirements.py
+blob        5843 scripts/measure_touten.py
+blob        6093 scripts/merge_semantic_nodes.py
+blob       16849 scripts/post_dev_article.py
+blob        6500 scripts/prepare_models.py
+blob       15497 scripts/publish_oss.py
+blob       16855 scripts/rebuild_wyrd_v3.py
+blob        2305 scripts/recalc_abstraction_weights.py
+blob        1600 scripts/release_sha256.py
+blob       22597 scripts/restore_layer0_verbatim.py
+blob        4580 scripts/rewrite_episodes_first_person.py
+blob        9674 scripts/search_wyrd.py
+blob        3971 scripts/search_wyrd_README.md
+blob        3459 scripts/summary_v2_adopt_shadow.py
+blob        3502 scripts/test_monologue.py
+blob        7174 scripts/thin_touten.py
+blob        4727 scripts/unnest_context_state.py
+blob         537 search_wyrd.bat
+blob       10459 server.py
+tree           0 tests
+blob       40513 tests/test_ai_lounge_satellite.py
+blob       52378 tests/test_atelier.py
+blob       21636 tests/test_away_messages.py
+blob       11374 tests/test_background_interrupt.py
+blob       16424 tests/test_call_bell.py
+blob       43029 tests/test_citron_editor.py
+blob        5274 tests/test_city_event_notice.py
+blob       14491 tests/test_compression_raw_first.py
+blob        4031 tests/test_console_log_split.py
+blob       34833 tests/test_context_guard.py
+blob       37642 tests/test_discord_satellite.py
+blob       35743 tests/test_ear.py
+blob       11997 tests/test_i18n_programs.py
+blob       12692 tests/test_i18n_prompts.py
+blob        7998 tests/test_image_budget.py
+blob        8955 tests/test_image_norm.py
+blob       16348 tests/test_image_rejected.py
+blob       11663 tests/test_image_zoom.py
+blob       19225 tests/test_layer0_compress.py
+blob        9741 tests/test_layer0_task_instruction.py
+blob       17779 tests/test_letter_post.py
+blob       18016 tests/test_llm_chat_streamed.py
+blob       27022 tests/test_log_search.py
+blob       10975 tests/test_log_viewer_api.py
+blob       47258 tests/test_matrix_satellite.py
+blob       39549 tests/test_misskey_satellite.py
+blob       43575 tests/test_moltbook.py
+blob        6189 tests/test_moontide_v2.py
+blob       13565 tests/test_nhk_news.py
+blob        7269 tests/test_notice_marker_order.py
+blob       67674 tests/test_openbotcity.py
+blob       15709 tests/test_picture_memory.py
+blob       20530 tests/test_restore_layer0_verbatim.py
+blob        8290 tests/test_run_program_image.py
+blob       13039 tests/test_security_hardening.py
+blob       26308 tests/test_self_mirror.py
+blob        8049 tests/test_stream_sanitizer.py
+blob       78630 tests/test_summary_v2.py
+blob       10502 tests/test_token_breakdown.py
+blob       11054 tests/test_tool_result_clip.py
+blob       14573 tests/test_touten_polish.py
+blob       14951 tests/test_touten_thin.py
+blob       29388 tests/test_tsukimi_browser.py
+blob        7495 tests/test_ws_history_stop_marker.py
+blob       12038 tests/test_wyrd_import.py
+tree           0 vital
+blob          21 vital/__init__.py
+blob         968 vital/cost_tracker.py
+blob        2482 vital/deepseek_tracker.py
+blob        7259 vital/desire_manager.py
+blob        6147 vital/moodphase.py
+blob       22490 vital/moontide_v2.py
+blob        1193 vital/token_tracker.py
+blob       24281 vital/vital_manager.py
+tree           0 web
+blob       11165 web/dashboard.html
+blob       74157 web/debug_context.html
+blob        7559 web/log_viewer.html
+blob        9477 web/login.html
+blob       21155 web/manual.html
+blob       17163 web/settings_api_keys.html
+blob       12057 web/settings_compression.html
+blob        5618 web/settings_desire.html
+blob       42945 web/settings_general.html
+blob        3992 web/settings_language.html
+blob       26523 web/settings_llm.html
+blob       11948 web/settings_mood.html
+blob       21968 web/settings_moonbeat.html
+blob        9567 web/settings_openclaw.html
+blob        8959 web/settings_security.html
+blob        5205 web/settings_self_memo.html
+blob        9283 web/settings_system_prompts.html
+blob        6855 web/settings_tips.html
+blob       10029 web/settings_vital.html
+tree           0 web/static
+blob        4819 web/static/chat_history.js
+blob       81020 web/static/dashboard.css
+blob       81973 web/static/dashboard.js
+tree           0 web/static/images
+blob        6333 web/static/images/crescentgrove_logo_s.png
+blob        5430 web/static/images/favicon.ico
+blob       56078 web/static/images/favicon.png
+tree           0 web/static/images/icons
+blob       13836 web/static/images/icons/alarm-clock.svg
+blob        3298 web/static/images/icons/arrow-refresh.svg
+blob        1606 web/static/images/icons/arrow1.svg
+blob        1299 web/static/images/icons/arrow2.svg
+blob        4317 web/static/images/icons/arrows-refresh.svg
+blob       10837 web/static/images/icons/book-open.svg
+blob        4723 web/static/images/icons/box.svg
+blob        8779 web/static/images/icons/cake-slice.svg
+blob       12916 web/static/images/icons/calendar.svg
+blob        9699 web/static/images/icons/cat.svg
+blob        4038 web/static/images/icons/chat-bubble-white.svg
+blob        4038 web/static/images/icons/chat-bubble.svg
+blob       15282 web/static/images/icons/cherry-blossom.svg
+blob        2800 web/static/images/icons/circle.svg
+blob        2122 web/static/images/icons/circle_green.svg
+blob        2122 web/static/images/icons/circle_nblue.svg
+blob        2122 web/static/images/icons/circle_peach.svg
+blob        2122 web/static/images/icons/circle_pink.svg
+blob        2122 web/static/images/icons/circle_purple.svg
+blob        2122 web/static/images/icons/circle_yellow.svg
+blob        3662 web/static/images/icons/eraser.svg
+blob        4001 web/static/images/icons/feather-pen.svg
+blob        2776 web/static/images/icons/fire.svg
+blob        6100 web/static/images/icons/flower.svg
+blob        3958 web/static/images/icons/folder.svg
+blob        6724 web/static/images/icons/fountain-pen.svg
+blob        7609 web/static/images/icons/gear.svg
+blob        3876 web/static/images/icons/glasses.svg
+blob        7816 web/static/images/icons/globe.svg
+blob        3369 web/static/images/icons/heart-beat.svg
+blob        2851 web/static/images/icons/heart-green.svg
+blob       12074 web/static/images/icons/heart-stitch.svg
+blob        2778 web/static/images/icons/heart.svg
+blob        3199 web/static/images/icons/heartbeat.svg
+blob        8450 web/static/images/icons/house.svg
+blob        6355 web/static/images/icons/key.svg
+blob        5775 web/static/images/icons/ladybug.svg
+blob        6199 web/static/images/icons/ladybug2.svg
+blob        2185 web/static/images/icons/layer0.svg
+blob        2034 web/static/images/icons/layer1.svg
+blob        2337 web/static/images/icons/layer2.svg
+blob        5232 web/static/images/icons/leaf.svg
+blob       12351 web/static/images/icons/lightbulb.svg
+blob        3321 web/static/images/icons/lightning.svg
+blob        7238 web/static/images/icons/lightning2.svg
+blob        3738 web/static/images/icons/magnifier.svg
+blob        8586 web/static/images/icons/mail-heart.svg
+blob        1139 web/static/images/icons/moon-sparkle.svg
+blob        9458 web/static/images/icons/moon-star.svg
+blob        3249 web/static/images/icons/moon.svg
+blob        8818 web/static/images/icons/muscle.svg
+blob        3602 web/static/images/icons/music-note.svg
+blob        8758 web/static/images/icons/notebook.svg
+blob        7981 web/static/images/icons/notebook2.svg
+blob        3078 web/static/images/icons/ok.svg
+blob        6368 web/static/images/icons/padlock.svg
+blob        4233 web/static/images/icons/paper-plane.svg
+blob        1222 web/static/images/icons/paperclip.svg
+blob        1146 web/static/images/icons/play-blue.svg
+blob        1146 web/static/images/icons/play-green.svg
+blob        1146 web/static/images/icons/play-peach.svg
+blob        1146 web/static/images/icons/play-pink.svg
+blob        1146 web/static/images/icons/play-purple.svg
+blob        1146 web/static/images/icons/play-yellow.svg
+blob        4671 web/static/images/icons/pushpin.svg
+blob        3151 web/static/images/icons/raw.svg
+blob        4707 web/static/images/icons/rice-bowl.svg
+blob       10927 web/static/images/icons/screw.svg
+blob        7646 web/static/images/icons/scroll.svg
+blob        5634 web/static/images/icons/sparkles.svg
+blob        2688 web/static/images/icons/square_blue.svg
+blob        2688 web/static/images/icons/square_green.svg
+blob        2688 web/static/images/icons/square_peach.svg
+blob        2688 web/static/images/icons/square_pink.svg
+blob        2688 web/static/images/icons/square_purple.svg
+blob        2688 web/static/images/icons/square_yellow.svg
+blob        5519 web/static/images/icons/star.svg
+blob        7637 web/static/images/icons/sun.svg
+blob        7651 web/static/images/icons/telephone.svg
+blob        2305 web/static/images/icons/triangle.svg
+blob        5494 web/static/images/icons/water-drop.svg
+blob        3021 web/static/images/icons/wrench.svg
+blob        2751 web/static/images/icons/x-mark.svg
+blob        3914 web/static/images/icons/yuzu.svg
+tree           0 web/static/images/themes
+tree           0 web/static/images/themes/journal
+blob      298413 web/static/images/themes/journal/flower-corner.png
+blob      211553 web/static/images/themes/journal/header-tag.png
+blob      205942 web/static/images/themes/journal/lavender-sprig.png
+blob      196011 web/static/images/themes/journal/linen-tile.png
+blob    10831896 web/static/images/themes/journal/linen.png
+blob      345963 web/static/images/themes/journal/paper-texture.png
+blob      883008 web/static/images/themes/journal/polaroid-window.png
+blob       36668 web/static/images/themes/journal/torn-note.png
+blob      102240 web/static/images/themes/journal/washi-tape-lavender.png
+blob       73609 web/static/images/themes/journal/washi-tape-sage.png
+blob       94564 web/static/images/themes/journal/wax-seal.png
+blob       67703 web/static/images/yuzu180_2.png
+blob     4930256 web/static/images/yuzu_2048.png
+blob      149353 web/static/images/yuzu_256.png
+blob      489111 web/static/images/yuzu_512.png
+blob       24794 web/static/log_viewer.js
+blob        6006 web/static/settings_form.css
+blob        6693 web/static/settings_nav.js
+blob       18043 web/static/theme-tokens.css
+blob        7474 web/static/theme.js

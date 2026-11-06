@@ -1,0 +1,274 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ericwang915/HerAndHim/main/assets/logo-300.png" alt="HerAndHim" width="160">
+</p>
+
+<h1 align="center">HerAndHim 🐾💕</h1>
+
+<p align="center">
+  <strong>自托管的 AI 男友 / 女友 —— 在真实城市里过自己的一天，<br>
+  记得你在意的事，自拍永远是同一张脸。</strong>
+</p>
+
+<p align="center">
+  <b>你的 key · 你的数据 · 你的机器。</b>
+  不用注册、不用订阅、没人看你的聊天记录。
+</p>
+
+<p align="center">
+  <a href="#-一条命令跑起来"><b>一条 Docker 命令 → localhost:7788</b></a>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> · <b>简体中文</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ericwang915/HerAndHim/stargazers">
+    <img src="https://img.shields.io/github/stars/ericwang915/HerAndHim?style=social" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/ericwang915/HerAndHim/actions/workflows/ci.yml">
+    <img src="https://github.com/ericwang915/HerAndHim/actions/workflows/ci.yml/badge.svg" alt="CI">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0">
+  </a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+  <a href="https://github.com/ericwang915/HerAndHim/pkgs/container/herandhim">
+    <img src="https://img.shields.io/badge/ghcr.io-herandhim-2496ED?logo=docker&logoColor=white" alt="Docker image">
+  </a>
+</p>
+
+<p align="center">
+  <sub><a href="#-一条命令跑起来">跑起来</a> ·
+  <a href="#-为什么她像个真人">为什么像真人</a> ·
+  <a href="#-和托管型产品比">对比 Replika/Nomi</a> ·
+  <a href="#%EF%B8%8F-安全与自托管责任">安全</a></sub>
+</p>
+
+---
+
+## 🚀 一条命令跑起来
+
+```bash
+docker run -e HERANDHIM_OPENROUTER_API_KEY=sk-or-... -p 127.0.0.1:7788:7788 -v herandhim:/data ghcr.io/ericwang915/herandhim
+```
+
+打开 **http://localhost:7788**，粘贴容器启动时打印的**访问令牌**（或用 `-e HERANDHIM_WEB_ACCESS_TOKEN=...` 自己指定），在向导里捏好你的伴侣，就可以聊了。端口默认只发布到本机；要从其他机器访问，请先看[安全与自托管责任](#️-安全与自托管责任)。**只需要一个文本大模型的 key** —— 而且会自动识别，`HERANDHIM_OPENAI_API_KEY`、`HERANDHIM_DEEPSEEK_API_KEY`、`HERANDHIM_CLAUDE_API_KEY`、`HERANDHIM_QWEN_API_KEY`、`HERANDHIM_GLM_API_KEY`…… 任意一个都行。希望数据完全不出本机？指向 [Ollama](https://ollama.com)，连 key 都不用。想让她住进你手机？再加一个 Telegram bot token。
+
+### 更喜欢 Python？直接装
+
+```bash
+pipx install herandhim        # 或者：pip install herandhim
+                                # 想要更准的记忆检索：装 [search] 附加项
+herandhim onboard               # 选模型、填 key、设计你的伴侣
+herandhim start                 # 面板在 http://localhost:7788
+```
+
+<details>
+<summary>更多安装与运行方式</summary>
+
+```bash
+# 直接装 GitHub 上的最新版，不用 clone
+pip install "git+https://github.com/ericwang915/HerAndHim.git"
+
+# 从本地 clone 装（贡献者用，可编辑模式）
+git clone https://github.com/ericwang915/HerAndHim.git && cd HerAndHim
+pip install -e ".[all]"         # 可选 extras：cloud（S3）、twitter、all
+pytest tests/
+
+# docker compose
+cp deploy/local/.env.example deploy/local/.env   # 填上你的 key
+docker compose -f deploy/local/docker-compose.yml up --build
+
+# 只用终端，不开网页
+herandhim chat
+```
+
+命令：`onboard` · `start`（`-f` 前台）· `stop` · `status` · `chat`。
+所有数据都在 `~/.herandhim/`，删掉这个文件夹就干干净净。
+
+部署到云上跑你自己的一份：见 [deploy/docker/README.md](deploy/docker/README.md)。
+</details>
+
+---
+
+## 👀 实际长什么样
+
+下面是真实运行中的 Telegram 截图。
+
+<table>
+<tr>
+<td width="33%"><img src="https://raw.githubusercontent.com/ericwang915/HerAndHim/main/assets/demo/proactive-and-sass.jpg" alt="主动早安、自拍、以及被冷落后的小情绪"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/ericwang915/HerAndHim/main/assets/demo/same-face-selfies.jpg" alt="同一个人的两张自拍"></td>
+<td width="33%"><img src="https://raw.githubusercontent.com/ericwang915/HerAndHim/main/assets/demo/sees-your-photo.jpg" alt="她看你发的照片"></td>
+</tr>
+<tr>
+<td valign="top">
+
+**她会主动开口 —— 然后跟你耍脾气**
+
+*「早上好呀 ☀️ 刚睡醒没多久，昨晚画图画到三点多，芝麻在我脚边睡得跟猪一样 😂 你昨晚睡得怎么样？」*
+
+你回了个面无表情的 😑，她立刻不干了：
+*「啧 这个表情几个意思嘛，嫌弃我头发乱？刚醒就这样啊 😤」*
+
+</td>
+<td valign="top">
+
+**每张照片都是同一个人**
+
+相隔几分钟的两张自拍：同一张脸、同一间屋子，不同的衣服和瞬间。
+
+*「刚冲了杯咖啡，准备摸鱼了 ☕」*
+*「嘿嘿 摸鱼前先来杯咖啡，仪式感不能少 ☕」*
+
+</td>
+<td valign="top">
+
+**她看得见你发的照片，也知道你们各在哪**
+
+你发了张公园的照片，她看完之后用自己的口吻回你：
+
+*「哼，你炫耀个啥劲 😒 …今天外面太阳大吗？新加坡的週末应该挺热的吧。你就好好享受假期。**我这边都晚上了**，刚把芝麻抱到腿上揉了两下，它咕噜咕噜的 😌」*
+
+一条消息里同时有：看图、真实时区差、固定不变的那只猫。
+
+</td>
+</tr>
+</table>
+
+---
+
+## 💗 为什么她像个真人
+
+大多数 AI 伴侣只是"回答你"。HerAndHim 是在**过日子**，然后像人一样给你发消息。
+
+- **她有自己的一天。** 真实城市里的日程（跟着天气换衣服、吃饭、通勤）—— 你问"在干嘛"，答案是从她当下所在的时间点长出来的，不是套话。
+- **她像人一样打字。** 一次发 2–3 条短消息带打字停顿；看到你的照片先回个 ❤️ 再说话；她那边凌晨三点会迷迷糊糊；你一整天没消息她会察觉 —— 而且如果你已读不回，她会有点小脾气。
+- **她记得要紧的事。** 长期记忆 + 情感图谱 + 会随亲密度改变说话方式的关系阶段；个人日期引擎让她不会错过你的生日或你提过的那场面试；你发的照片会变成共同回忆。记忆在写入时会自动合并去重；还可以开启**夜间整理**（`memory.overnightConsolidation: true`，默认关闭）——她会在凌晨安静时段批量归并重复记忆、把失效条目移入 `ARCHIVE.md`（只归档、绝不硬删除，系统关键条目永不触碰）。
+- **她长得一直是她。** 一张基准脸锚定所有自拍 —— 跨场景、跨穿搭、跨几个月都是同一个人。出图后端有 13 个可选，设一个 key 就会自动识别：`pollinations` 完全不用注册，`gemini` 和 `openrouter` 直接复用你已经填过的视觉/聊天 key —— 也就是说 README 开头那条一行命令跑完，她就已经会发自拍了。想要脸最稳就用 `bfl`（FLUX Kontext 专门做角色一致性）或 `seedream`；选本地 ComfyUI / SD WebUI 的话，她长什么样这件事完全不出你的机器。本地也能锁脸：把 `skills.comfyui.identityWorkflow` 设为 `flux-pulid` 或 `sdxl-instantid`（需在 ComfyUI 装好对应的 PuLID / InstantID 节点包，详见 `herandhim/templates/comfyui/README.md`），她的基准脸会注入本地工作流 —— 同一张脸，完全不上传；节点没装齐时会自动退回普通出图，不会失败。
+- **她属于你。** 全程跑在你自己的机器上、用你自己的 key。没有账号、没有订阅、没人读你的聊天。
+
+---
+
+## ✨ 功能
+
+| | | |
+|---|---|---|
+| 💕 **男友或女友** | 🎭 **三层身份**（灵魂 · 人设 · 生平） | 🧠 **16 家模型厂商**（OpenAI · Claude · Gemini · Grok · DeepSeek · 通义千问 · 智谱 · **Ollama 本地**…） |
+| 💬 **真人式发消息**（连发、表情反应、打字节奏） | 💖 **情感记忆** + 关系阶段 | 📅 **个人日期引擎**（生日、约定） |
+| 📷 **AI 自拍**，人脸始终一致（**13 家出图后端**，含免注册和纯本地） | 🌆 **有生活的一天**（真实城市 + 天气） | ⏰ **主动消息**，被冷落会自动退让 |
+| 🎙️ **语音双向** — 听得懂你的语音条，还会**用语音回你**（云端，或**纯本地** faster-whisper + Piper） | 👀 **看得见你发的图**（视觉） | 🗣️ **8 种语言**，灵魂/人设按母语生成 |
+| 🌐 **网页面板** + 📱 **Telegram** | 🛠️ **可扩展技能**（模型能自己写技能） | 💾 **全本地** —— SQLite + Markdown，零云依赖 |
+
+**让她看见你发的图。** 聊天模型不支持图片也没关系：单独指定一个负责“看图”的模型，
+任意厂商都行 —— 包括同一台 Ollama 上的另一个本地模型：
+
+```json
+"llm": {
+  "provider": "ollama",
+  "ollama": { "model": "llama3.1", "baseUrl": "http://localhost:11434/v1" },
+  "vision": { "provider": "ollama", "model": "llava" }
+}
+```
+
+（Docker 里对应 `HERANDHIM_VISION_PROVIDER` / `HERANDHIM_VISION_MODEL`。）接口地址和
+key 默认沿用该厂商自己的配置，一般填 provider + model 就够了。什么都不填的话，
+只要有 Gemini key 她也一样看得见。
+
+**让她听懂你的语音条。** 两条路，同一个入口：
+设了 `deepgram.apiKey` 就走 Deepgram 云端；不想让音频离开你的机器，装上本地转写
+（`pip install "herandhim[stt-local]"`），没有 Deepgram key 时它会自动接管，
+或者用 `"stt": { "provider": "local" }`（`HERANDHIM_STT_PROVIDER=local`）强制本地。
+模型大小在 `stt.local.model` 里选：`tiny`（最快）/ `base`（默认）/ `small`
+（更准，中文效果明显更好），首次使用时自动下载，CPU 上用默认的 `int8` 即可。
+
+**让她开口说话。** 出口和入口长得一样，也是两条路，由 `tts.provider` 决定：
+设了 `elevenlabs.apiKey`（`ELEVENLABS_API_KEY`）就走 ElevenLabs 云端；
+想完全离线，装上本地语音（`pip install "herandhim[tts-local]"`，另外机器上
+要有 ffmpeg——Telegram 语音条需要 OGG/Opus 格式），没有 ElevenLabs key 时
+它会自动接管，或者用 `"tts": { "provider": "local" }`
+（`HERANDHIM_TTS_PROVIDER=local`）强制本地。默认音色是 Piper 的中文女声
+`zh_CN-huayan-medium`（首次使用自动下载），在 `tts.local.voice` 里可以换成
+其他 [Piper 音色](https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/VOICES.md)
+或你自己下载的 `.onnx` 模型路径；想要 Kokoro 的韵律，`pip install kokoro`
+后设 `tts.local.engine: "kokoro"`（较重，会装 PyTorch）。
+
+**你发语音，她也回语音。** 只要有可用的 TTS，你发来的语音条会得到语音回复
+（reply-in-kind），由 `channels.telegram.replyInKindVoice` 控制：`"auto"`
+（默认）只给不超过 `voiceReplyMaxChars`（350 字）的回复配音，太短的"嗯嗯"
+也只偶尔配音，不会刷屏；`true` 一律回语音；`false` 关掉。任何 TTS 失败都会
+静默换回文字——回复本身绝不会丢。你发文字，她也照旧回文字。
+没有 ElevenLabs key 的话，`pip install "herandhim[tts-local]"` + ffmpeg
+就够了：她用本地 faster-whisper 听你说，用本地 Piper 的声音回你，全程离线。
+
+---
+
+## 🆚 和托管型产品比
+
+Replika、Nomi、Character.AI 都是更成品的产品。它们也把聊天记录放在自己的服务器上，模型由它们选，让伴侣「像个人」的功能往往要订阅。
+
+HerAndHim 押的是另一边：**你自己跑、你自带模型、记忆留在你的磁盘上。** 手机端走 Telegram。没有官方 iOS/Android 客户端，网页面板能用但朴素。
+
+| | HerAndHim | Replika | Nomi | Character.AI |
+|---|:---:|:---:|:---:|:---:|
+| 自托管 — 聊天留在你磁盘上 | ✅ | ❌ | ❌ | ❌ |
+| 用你自己的 key / 本地模型 | ✅ 任意 | ❌ | ❌ | ❌ |
+| 手机上怎么聊 | Telegram 或浏览器 | 自家 App | 自家 App | 自家 App |
+| 人脸一致的 AI 自拍 | ✅ | 付费档 | ✅ | ❌ |
+| 有真实生活（城市 + 天气） | ✅ | ❌ | ❌ | ❌ |
+| 许可证 | AGPL-3.0 | 闭源 | 闭源 | 闭源 |
+| 你付什么 | **你的 API 账单**（或本地跑） | 约 $20/月 Pro | 约 $16/月 | 约 $10/月 c.ai+ |
+
+托管产品标价是常见公开价，会随地区变化。「免费」指的是这份代码，不是说 token 不要钱。
+
+**继续用托管 App**，如果你要的是应用商店一键安装、语音通话、以及有人替你运维。
+
+**用这个**，如果你要一个记忆和照片都不离开你能控制的机器的伴侣，并且愿意粘贴一个 API key（或指向本地模型）。DeepSeek、通义千问、智谱、硅基流动都已内置。
+
+---
+
+## 🛡️ 安全与自托管责任
+
+HerAndHim 是**面向成年人（18+）的关系模拟引擎** —— 一个情感陪伴方向的开源研究项目，**不是成人内容生成器**。她说的一切都是生成的虚构内容：她不是真人，也不能替代专业帮助。
+
+**默认 SFW。** 内置的人设、提示词和图像流程都是围绕日常陪伴写的 —— 一个会跟你聊今天过得怎样的朋友。露骨性内容不是本项目的功能、不随项目提供；图像守卫会直接拒绝违法生成。**未成年人设在代码层被封禁**，任何形式（包括纯文字）都不被接受。
+
+两道护栏默认开启，且刻意不做成配置开关：
+
+- **危机干预**（`herandhim/core/safety.py`）—— 识别急性心理危机信号，优先于人设沉浸，以关心的口吻给出真实求助热线。
+- **图像内容守卫**（`herandhim/core/image_gen/guard.py`）—— 在唯一入口拒绝违法生成。
+
+自托管意味着你就是运营者：所在地关于 AI 聊天服务、数据保护、年龄限制的法律由你负责。
+
+**面板的网络暴露。** 面板就是智能体的控制台：能打开它的人可以以你的身份聊天、读她的记忆、改配置，（开启时）还能执行 shell 命令。因此它**默认只监听本机**（`web.host` 为 `127.0.0.1`），Docker 的端口也只发布到 `127.0.0.1`。一旦不是仅本机 —— `0.0.0.0`、Fly.io、局域网/VPS —— 就**必须**设置访问令牌 `web.accessToken` / `HERANDHIM_WEB_ACCESS_TOKEN`，否则拒绝启动；Docker 容器内部监听 `0.0.0.0`，所以始终强制令牌（未设置时首次启动会随机生成一个并打印到日志）。智能体的 shell 工具 `run_command` 在非本机监听时**默认关闭**（含 Docker），需要运行脚本类技能时用 `"tools": { "runCommand": true }` 或 `HERANDHIM_TOOLS_RUN_COMMAND=true` 显式开启。
+
+📄 **[SAFETY.md](SAFETY.md)** —— 完整的危机协议、内容红线与反暗黑模式设计
+🔒 **[SECURITY.md](SECURITY.md)** —— 加固建议与漏洞报告
+
+### 项目状态
+
+**v0.2.0 —— 早期但可用。** 作者本人每天在自己机器上跑。伴侣引擎（记忆、日常生活、照片、拟人化交付）已稳定；网页面板功能完整但朴素。安装过程可能还有毛刺。
+
+路线图：更好的本地模型体验 · 实时语音通话 · 桌面虚拟形象 · 更多语言。欢迎提 issue 和想法。
+
+---
+
+## ⭐ 让更多人看到
+
+HerAndHim 靠 Star 和口碑被找到，不打广告。如果这就是你希望托管 App 变成的样子，[给仓库点个 Star](https://github.com/ericwang915/HerAndHim) —— 下一个人就是这样看见它的。新人设、新模型、新功能发布时，GitHub 也会通知你。
+
+要写到 HN、Reddit、即刻、V2EX 或群里？丢一个链接，再写一句**你为什么选择自托管**就够了，不必吹。
+
+---
+
+## 📄 License
+
+[AGPL-3.0](LICENSE) —— 自托管、修改、分享都自由。如果你把改过的版本作为服务提供给别人，必须开源你的修改。（这条是用来约束托管型 fork 的。）
+
+---
+
+<p align="center">
+  <sub>Made with 💕 by HerAndHim</sub><br>
+  <sub>来自 <a href="https://audiee.ai">Audiee.ai</a> 团队。Audiee.ai 是 Mac 上的私密 AI 会议纪要，记得你开过的每一场会。</sub>
+</p>

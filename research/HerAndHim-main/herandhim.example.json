@@ -1,0 +1,199 @@
+{
+  "llm": {
+    "provider": "deepseek",
+    "deepseek": {
+      "apiKey": "",
+      "model": "deepseek-chat",
+      "baseUrl": "https://api.deepseek.com/v1"
+    },
+    "grok": {
+      "apiKey": "",
+      "model": "grok-3",
+      "baseUrl": "https://api.x.ai/v1"
+    },
+    "claude": {
+      "apiKey": "",
+      "model": "claude-sonnet-4-20250514"
+    },
+    "gemini": {
+      "apiKey": "",
+      "model": "gemini-2.0-flash"
+    },
+    "kimi": {
+      "apiKey": "",
+      "model": "moonshot-v1-128k",
+      "baseUrl": "https://api.moonshot.cn/v1"
+    },
+    "glm": {
+      "apiKey": "",
+      "model": "glm-4-flash",
+      "baseUrl": "https://open.bigmodel.cn/api/paas/v4/"
+    },
+    "ollama": {
+      "apiKey": "",
+      "model": "llama3.1",
+      "baseUrl": "http://localhost:11434/v1"
+    },
+    "vision": {
+      "provider": "",
+      "model": ""
+    }
+  },
+  "tavily": {
+    "apiKey": ""
+  },
+  "deepgram": {
+    "apiKey": ""
+  },
+  "stt": {
+    "provider": "auto",
+    "local": {
+      "model": "base",
+      "device": "cpu",
+      "computeType": "int8",
+      "language": "auto"
+    }
+  },
+  "tts": {
+    "provider": "auto",
+    "local": {
+      "engine": "piper",
+      "voice": "zh_CN-huayan-medium"
+    }
+  },
+  "elevenlabs": {
+    "apiKey": "",
+    "voiceId": "ByhETIclHirOlWnWKhHc"
+  },
+  "web": {
+    "host": "127.0.0.1",
+    "port": 7788,
+    "accessToken": ""
+  },
+  "tools": {
+    "runCommand": "auto"
+  },
+  "channels": {
+    "telegram": {
+      "token": "",
+      "allowedUsers": [],
+      "replyInKindVoice": "auto",
+      "voiceReplyMaxChars": 350
+    }
+  },
+  "isolation": {
+    "perGroup": false
+  },
+  "concurrency": {
+    "maxAgents": 4
+  },
+  "heartbeat": {
+    "intervalSec": 60,
+    "alertChatId": null
+  },
+  "memory": {
+    "dir": null,
+    "consolidation": true,
+    "overnightConsolidation": false,
+    "overnightHour": 3,
+    "overnightArchiveDays": 0
+  },
+  "storage": {
+    "eventsRetentionDays": 90,
+    "turnsRetentionDays": 365,
+    "autoVacuumOnPrune": true
+  },
+  "skills": {
+    "image": {
+      "provider": ""
+    },
+    "gemini": {
+      "apiKey": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    "openai": {
+      "apiKey": "",
+      "model": "gpt-image-1"
+    },
+    "seedream": {
+      "apiKey": "",
+      "model": "seedream-5-0-lite-260128",
+      "baseUrl": "https://ark.ap-southeast.bytepluses.com/api/v3"
+    },
+    "fal": {
+      "apiKey": "",
+      "model": "fal-ai/flux/schnell"
+    },
+    "replicate": {
+      "apiKey": "",
+      "model": "black-forest-labs/flux-schnell"
+    },
+    "sdwebui": {
+      "baseUrl": "http://localhost:7860"
+    },
+    "pollinations": {
+      "model": "flux"
+    },
+    "openrouter": {
+      "apiKey": "",
+      "model": "google/gemini-2.5-flash-image"
+    },
+    "bfl": {
+      "apiKey": "",
+      "model": "flux-kontext-pro"
+    },
+    "stability": {
+      "apiKey": "",
+      "model": "core"
+    },
+    "dashscope": {
+      "apiKey": "",
+      "model": "wan2.2-t2i-flash"
+    },
+    "comfyui": {
+      "baseUrl": "http://localhost:8188",
+      "checkpoint": "sd_xl_base_1.0.safetensors",
+      "workflow": "",
+      "identityWorkflow": ""
+    },
+    "custom": {
+      "apiKey": "",
+      "baseUrl": "",
+      "model": ""
+    },
+    "twitter": {
+      "consumerKey": "",
+      "consumerSecret": "",
+      "accessToken": "",
+      "accessTokenSecret": ""
+    }
+  },
+  "selfie": {
+    "enabled": true,
+    "schedule": [
+      "10:00",
+      "16:00",
+      "20:00"
+    ],
+    "chatId": null,
+    "model": null,
+    "maxDaily": 3,
+    "proactiveProbability": 0.15
+  },
+  "proactive": {
+    "enabled": true,
+    "chatId": null,
+    "maxDaily": 6,
+    "quietStart": 0,
+    "quietEnd": 8
+  },
+  "agent": {
+    "autoCompactThreshold": 0,
+    "verbose": false
+  },
+  "quota": {
+    "diskMb": 0,
+    "dailyMessages": 0,
+    "dailyPhotos": 0
+  }
+}

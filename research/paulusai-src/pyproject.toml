@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "paulusai"
+version = "1.5.2"
+description = "A long-running, autonomous digital companion with persistent memory, a functional affective system, continuous learning, and tool use."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Pavel" }]
+keywords = ["agent", "llm", "memory", "companion", "litellm"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX :: Linux",
+    "Environment :: Console",
+]
+
+# Core runtime. Kept lean: semantic-memory and Telegram support are optional
+# extras (the agent degrades gracefully without them — keyword search instead
+# of embeddings, terminal-only instead of the chat gateway).
+dependencies = [
+    "litellm>=1.40,<2",
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+vectors = ["chromadb>=0.5,<2"]
+telegram = [
+    "python-telegram-bot>=21.0,<23",
+    "telegramify-markdown>=1.0,<2",
+]
+email = ["agentmail>=0.5,<1"]
+web = ["beautifulsoup4>=4.12,<5"]
+webui = ["aiohttp>=3.9,<4"]
+mcp = ["mcp>=2,<3"]
+all = [
+    "chromadb>=0.5,<2",
+    "python-telegram-bot>=21.0,<23",
+    "telegramify-markdown>=1.0,<2",
+    "agentmail>=0.5,<1",
+    "beautifulsoup4>=4.12,<5",
+    "aiohttp>=3.9,<4",
+    "mcp>=2,<3",
+]
+dev = [
+    "pytest>=8,<9",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+paulus = "paulus.cli:main"
+paulus-gateway = "paulus.gateway_main:run"
+paulus-mcp-login = "paulus.mcp_auth:main"
+
+[project.urls]
+Homepage = "https://github.com/Pavel6625/PaulusAI"
+Wiki = "https://github.com/Pavel6625/PaulusAI/wiki"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# The web UI's page, script and stylesheet, served by the web adapter.
+[tool.setuptools.package-data]
+"paulus.gateway.platforms" = ["webui_static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

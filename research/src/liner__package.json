@@ -1,0 +1,24 @@
+{
+  "name": "crescent-liner",
+  "version": "0.1.14",
+  "description": "Crescent Grove 専用クライアントアプリ",
+  "main": "out/main/index.js",
+  "productName": "Crescent Grove",
+  "author": "カノン",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "build:win": "python ../scripts/build_dist.py --force && electron-vite build && electron-builder --win"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@types/node": "^22.15.0",
+    "electron": "^44.4.3",
+    "electron-builder": "^26.16.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.5.2",
+    "vite": "^7.3.6"
+  }
+}

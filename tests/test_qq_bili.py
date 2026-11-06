@@ -166,3 +166,63 @@ def test_bilibili_video_info_mocked(tmp_path, monkeypatch):
     b = BilibiliAdapter({"min_interval_seconds": 0})
     out = b.video_info("BV1xx411c7mD")
     assert "测试视频" in out and "up主" in out
+
+
+def test_governor_budgets_and_backoff():
+    from adapters.bilibili import BiliGovernor
+
+    gov = BiliGovernor(
+        {"read_per_hour": 3, "read_per_day": 5, "request_interval_seconds": 0}
+    )
+    for _ in range(3):
+        assert gov.allow_read() == ""
+        gov.record_read()
+    assert "预算" in gov.allow_read()  # 超出 3/时
+    gov.record_throttle_hit()
+    assert "暂停" in gov.allow_read()  # 退避中
+    assert "暂停" in gov.allow_write()
+
+
+def test_login_flow_mocked(tmp_path, monkeypatch):
+    import types
+    import urllib.request
+
+    cred = str(tmp_path / "bili.json")
+
+    class FakeResp:
+        def __init__(self, url, payload, set_cookie=None):
+            self._url = url
+            self._p = json.dumps(payload).encode("utf-8")
+            self.headers = types.SimpleNamespace(get_all=lambda k: set_cookie or [])
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n=-1):
+            return self._p
+
+    def fake_urlopen(req, timeout):
+        url = req.full_url
+        if "generate" in url:
+            return FakeResp(url, {"code": 0, "data": {"qrcode_key": "KEY1", "url": "http://qr"}})
+        if "poll" in url:
+            return FakeResp(url, {"data": {"code": 0}})
+        if "nav" in url:
+            return FakeResp(
+                url,
+                {"data": {"isLogin": True, "uname": "她", "mid": 123}},
+                set_cookie=["SESSDATA=abc; Path=/;", "bili_jct=xyz; Path=/;", "buvid3=uv; Path=/;"],
+            )
+        return FakeResp(url, {})
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    b = BilibiliAdapter({"min_interval_seconds": 0}, credentials_path=cred)
+    start = b.login_start()
+    assert start["qrcode_key"] == "KEY1"
+    poll = b.login_poll()
+    assert poll["status"] == "success"
+    assert b.logged_in
+    assert os.path.isfile(cred)

@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## [0.8.0] - 2026-11-06
+
+B 站 v2（登录态 + 风控）：
+
+- 扫码登录：qrcode generate/poll，凭据存 credentials/bili.json（gitignore）
+- 风控参数表 Governor：读 600/h·3000/天、写 12/h·30/天、写冷却 120s、私信冷却 60s、
+  请求间隔、撞 412/429 退避 5/10/20/30 分钟，程序化执行、LLM 改不了
+- 已登录工具：bili_me（账号信息）、dm_status（互关 attribute=6 检查）、
+  send_dm（只发 owner / 必须互关 / csrf）
+- CLI：/bili login|poll|me|dm；agent 工具 bili_me
+- 测试：42/42（登录流程与风控均 mock 覆盖）
+
 ## [0.7.0] - 2026-11-06
 
 QQ 与 Bilibili 适配器：

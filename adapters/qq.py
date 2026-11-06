@@ -56,15 +56,17 @@ class OneBotAdapter(Adapter):
                 except Exception:
                     continue
                 if data.get("post_type") == "message":
-                    self._on_message(data)
+                    await self._on_message(data)
                 elif data.get("echo") and data["echo"] in self._pending_actions:
                     fut = self._pending_actions.pop(data["echo"])
                     if not fut.done():
                         fut.set_result(data)
+                else:
+                    print(f"[qq] 收到未识别帧：{str(data)[:200]}")
         finally:
             self.conns.discard(ws)
 
-    def _on_message(self, data: dict) -> None:
+    async def _on_message(self, data: dict) -> None:
         msg_type = data.get("message_type", "")
         scope = "private" if msg_type == "private" else "group"
         sender = data.get("sender") or {}
@@ -76,6 +78,12 @@ class OneBotAdapter(Adapter):
         rel = self.components.get("relationships")
         if rel is not None:
             rel.touch(user_id)
+        handler = self.components.get("on_user_message")
+        if handler is not None:
+            try:
+                await handler(scope, user_id, text)
+            except Exception as exc:
+                print(f"[qq] 处理消息失败：{exc}")
 
     # ---- 发消息（审批后由 CLI 调用 dispatch） ----
     def register_send(self, approval_id: int, coro) -> None:
@@ -97,10 +105,14 @@ class OneBotAdapter(Adapter):
         payload = json.dumps(
             {
                 "action": "send_private_msg",
-                "params": {"user_id": int(user_id), "message": text},
+                "params": {
+                    "user_id": int(user_id),
+                    "message": [{"type": "text", "data": {"text": text}}],
+                },
                 "echo": echo,
             }
         )
+        print(f"[qq] 发送动作：{payload[:120]}")
         for ws in list(self.conns):
             await ws.send(payload)
         try:

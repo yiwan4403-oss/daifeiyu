@@ -39,10 +39,10 @@ class MemoryArbiter:
         )
         self.memory = components["memories"]
 
-    def decide_sync(self, user_text: str, reply: str) -> dict:
+    def decide_sync(self, user_text: str, reply: str, user_key: str = "") -> dict:
         if not getattr(self.gateway, "api_key", ""):
             return {"ops": [], "emotion": {}}
-        existing = self.memory.search(user_text, 4)
+        existing = self.memory.search(user_text, 4, user=user_key or None)
         body = (
             f"本轮对话：\n用户：{user_text}\n我：{reply}\n"
             "已有相关记忆：\n" + "\n".join(f"- {t}" for t in existing)
@@ -67,13 +67,13 @@ class MemoryArbiter:
             emotion = {}
         return {"ops": ops, "emotion": emotion}
 
-    async def apply(self, user_text: str, reply: str) -> dict:
-        result = await asyncio.to_thread(self.decide_sync, user_text, reply)
+    async def apply(self, user_text: str, reply: str, user_key: str = "") -> dict:
+        result = await asyncio.to_thread(self.decide_sync, user_text, reply, user_key)
         for op in result["ops"]:
             content = str(op.get("content", "")).strip()
             if op["op"] in ("ADD", "UPDATE") and not content:
                 continue
-            self.memory.apply_op(op["op"], content, target=op.get("target"))
+            self.memory.apply_op(op["op"], content, target=op.get("target"), user_key=user_key)
         emotion = result["emotion"]
         if emotion:
             em = self.__dict__.get("_emotion")

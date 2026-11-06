@@ -140,6 +140,14 @@ def _bili_video_tool(ctx: RunContext[ResidentDeps], bvid: str) -> str:
     return adapter.video_info(bvid)
 
 
+def _bili_me_tool(ctx: RunContext[ResidentDeps]) -> str:
+    """查看自己的 B 站账号状态。"""
+    adapter = (ctx.deps.adapters or {}).get("bilibili")
+    if adapter is None:
+        return "B站适配器未启用"
+    return adapter.me()
+
+
 async def _qq_send_tool(ctx: RunContext[ResidentDeps], user_id: str, text: str) -> str:
     """给 QQ 用户发私信：需要人工审批后才真正发送。"""
     adapter = (ctx.deps.adapters or {}).get("qq")
@@ -200,7 +208,8 @@ class ResidentAgent:
         d = ctx.deps
         query = getattr(ctx, "prompt", None) or ""
         ident = d.identity.get()
-        related = d.memory.search(query, 5)
+        scoped_user = self._current_user if self._current_user not in ("", "user") else None
+        related = d.memory.search(query, 5, user=scoped_user)
         recent = d.events.recent(20)
         emotion_summary = d.emotion.summary() if d.emotion else ""
         relationship = d.relationships.summary(self._current_user) if d.relationships else ""
@@ -212,6 +221,7 @@ class ResidentAgent:
             relationship=relationship,
             autobiography=autobiography,
             beliefs=beliefs,
+            user_label=self._current_user,
         )
 
     def _check_budget(self) -> None:
@@ -241,7 +251,9 @@ class ResidentAgent:
         )
         self.conn.commit()
 
-    async def chat(self, user_text: str, tier: str = "chat") -> str:
+    async def chat(self, user_text: str, tier: str = "chat", user_key: str = "") -> str:
+        if user_key:
+            self._current_user = user_key
         self._check_budget()
         agent = Agent(
             self._make(tier),
@@ -259,6 +271,7 @@ class ResidentAgent:
                 _mcp_call_tool,
                 _bili_search_tool,
                 _bili_video_tool,
+                _bili_me_tool,
                 _qq_send_tool,
             ],
             retries=1,
@@ -266,9 +279,20 @@ class ResidentAgent:
         try:
             result = await agent.run(user_text, deps=self.deps)
         except Exception as exc:
-            if "401" in str(exc) or "Authentication" in str(exc):
+            msg = str(exc)
+            # 网络抖动/超时：重试一次，别让她把错误当回复发出去
+            if any(k in msg for k in ("Connection", "timeout", "Timeout", "ConnectError")):
+                import asyncio as _asyncio
+
+                await _asyncio.sleep(1.5)
+                try:
+                    result = await agent.run(user_text, deps=self.deps)
+                except Exception:
+                    return "（网络抽风了，等会儿再跟我说一遍吧）"
+            elif "401" in msg or "Authentication" in msg:
                 return "[网关错误] API Key 无效或未配置"
-            raise
+            else:
+                raise
         self._record_usage(result.usage, tier)
         out = result.output
         return out.strip() if isinstance(out, str) else str(out)

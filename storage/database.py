@@ -138,9 +138,13 @@ def open_db(path: str) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
-    # 迁移：旧库补 meta 列
-    try:
-        conn.execute("ALTER TABLE memories ADD COLUMN meta TEXT DEFAULT '{}'")
-    except sqlite3.OperationalError:
-        pass
+    # 迁移：旧库补 meta / user_key 列
+    for ddl in (
+        "ALTER TABLE memories ADD COLUMN meta TEXT DEFAULT '{}'",
+        "ALTER TABLE memories ADD COLUMN user_key TEXT DEFAULT ''",
+    ):
+        try:
+            conn.execute(ddl)
+        except sqlite3.OperationalError:
+            pass
     conn.commit()

@@ -9,8 +9,11 @@ def build_context(
     relationship: str = "",
     autobiography: str = "",
     beliefs: list | None = None,
+    user_label: str = "",
 ) -> str:
     parts = [f"你是 {identity.name}。", identity.core_persona or ""]
+    if user_label:
+        parts.append(f"现在跟你说话的人是：{user_label}（不同的人要分开对待，别把别人的事算到他头上）。")
     if autobiography:
         parts.append(f"你对自己的认知（自传）：{autobiography[:200]}")
     if emotion_summary:

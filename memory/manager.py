@@ -21,13 +21,16 @@ class MemoryManager:
         source: str = "self",
         salience: float = 0.5,
         links: list | None = None,
+        meta: dict | None = None,
+        user_key: str = "",
     ) -> int:
         assert kind in KINDS, f"未知记忆类型: {kind}"
         ts = time.time()
         cur = self.conn.execute(
-            "INSERT INTO memories(kind, content, source, salience, ts, links) "
-            "VALUES (?,?,?,?,?,?)",
-            (kind, content, source, salience, ts, json.dumps(links or [])),
+            "INSERT INTO memories(kind, content, source, salience, ts, links, meta, user_key) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (kind, content, source, salience, ts, json.dumps(links or []),
+             json.dumps(meta or {}, ensure_ascii=False), user_key),
         )
         mid = cur.lastrowid
         self.conn.execute(
@@ -40,7 +43,7 @@ class MemoryManager:
         self.conn.execute("DELETE FROM memory_fts WHERE rowid=?", (mid,))
         self.conn.execute("INSERT INTO memory_fts(rowid, content) VALUES (?,?)", (mid, content))
 
-    def apply_op(self, op: str, content: str, target=None) -> bool:
+    def apply_op(self, op: str, content: str, target=None, user_key: str = "") -> bool:
         """ADD/UPDATE/DELETE：先查重，再落库；DELETE 不物理删，标记 lost 保留原档。"""
         if op == "ADD":
             row = self.conn.execute(
@@ -49,7 +52,10 @@ class MemoryManager:
             ).fetchone()
             if row:
                 return False  # 已存在
-            self.save("semantic", content, source="llm", salience=self._salience(content))
+            self.save(
+                "semantic", content, source="llm",
+                salience=self._salience(content), user_key=user_key,
+            )
             return True
         if op == "UPDATE":
             row_id = target if isinstance(target, int) else None
@@ -124,25 +130,44 @@ class MemoryManager:
     def count(self) -> int:
         return self.conn.execute("SELECT COUNT(*) FROM memories").fetchone()[0]
 
-    def search(self, query: str, k: int = 5) -> list[str]:
-        """FTS5 优先，失败退化为 LIKE；排除已遗忘（lost）的记忆。"""
-        try:
-            rows = self.conn.execute(
+    def search(self, query: str, k: int = 5, user: str | None = None) -> list[str]:
+        """FTS5 优先，失败退化为 LIKE；排除已遗忘（lost）。
+
+        user 给出时：优先返回该玩家的记忆 + 全局记忆（user_key 为空）。
+        """
+        if user:
+            sql = (
                 "SELECT m.content FROM memory_fts f JOIN memories m ON m.rowid = f.rowid "
                 "WHERE memory_fts MATCH ? AND m.decay_state != 'lost' "
-                "ORDER BY rank LIMIT ?",
-                (query, k),
-            ).fetchall()
+                "AND (m.user_key = '' OR m.user_key = ?) ORDER BY rank LIMIT ?"
+            )
+            args = (query, user, k)
+        else:
+            sql = (
+                "SELECT m.content FROM memory_fts f JOIN memories m ON m.rowid = f.rowid "
+                "WHERE memory_fts MATCH ? AND m.decay_state != 'lost' "
+                "ORDER BY rank LIMIT ?"
+            )
+            args = (query, k)
+        try:
+            rows = self.conn.execute(sql, args).fetchall()
             if rows:
                 return [r[0] for r in rows]
         except Exception:
             pass
         like = f"%{query}%"
-        rows = self.conn.execute(
-            "SELECT content FROM memories WHERE content LIKE ? AND decay_state != 'lost' "
-            "ORDER BY salience DESC LIMIT ?",
-            (like, k),
-        ).fetchall()
+        if user:
+            rows = self.conn.execute(
+                "SELECT content FROM memories WHERE content LIKE ? AND decay_state != 'lost' "
+                "AND (user_key = '' OR user_key = ?) ORDER BY salience DESC LIMIT ?",
+                (like, user, k),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT content FROM memories WHERE content LIKE ? AND decay_state != 'lost' "
+                "ORDER BY salience DESC LIMIT ?",
+                (like, k),
+            ).fetchall()
         return [r[0] for r in rows]
 
 

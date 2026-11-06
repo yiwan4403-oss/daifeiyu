@@ -1,30 +1,25 @@
 resident:
-  name: "大肥鱼"
-  data_dir: "data"
-  log_level: "INFO"
-
+  name: 大肥鱼
+  data_dir: data
+  log_level: INFO
 model:
-  provider: "deepseek"
-  base_url: "https://api.deepseek.com"
-  api_key_env: "DEEPSEEK_API_KEY"
-  model: "deepseek-flash"
+  provider: deepseek
+  base_url: https://api.deepseek.com
+  api_key_env: DEEPSEEK_API_KEY
+  model: deepseek-flash
   timeout_seconds: 60
   max_tokens: 300
   temperature: 0.9
-
 task_models:
-  chat: "deepseek-flash"
-  reason: "deepseek-v4-pro"
-  light: "deepseek-flash"
-
+  chat: deepseek-flash
+  reason: deepseek-v4-pro
+  light: deepseek-flash
 budget:
   daily_usd: 0.5
   usd_per_mtok_in: 0.28
   usd_per_mtok_out: 1.68
-
 loop:
   tick_seconds: 60
-
 life:
   tick_seconds: 60
   idle_minutes: 10
@@ -36,32 +31,40 @@ life:
     start_hour: 8
     end_hour: 23
     min_gap_minutes: 60
-
 development:
   test_timeout_seconds: 60
   allowed_imports:
-    - json
-    - random
-    - math
-    - datetime
-    - re
-    - typing
-    - collections
-
+  - json
+  - random
+  - math
+  - datetime
+  - re
+  - typing
+  - collections
 mcp:
   servers: []
-
 windows:
   allowed_dirs:
-    - workspace
-    - data
-
+  - workspace
+  - data
 qq:
-  enabled: false
+  enabled: true
   host: 127.0.0.1
   port: 6700
-
+  auto_reply: true
+  owner_ids:
+  - "2338033822"
 bilibili:
   enabled: true
-  min_interval_seconds: 3
+  min_interval_seconds: 1.5
   timeout_seconds: 15
+  owner_mid: ""
+  risk:
+    read_per_hour: 600
+    read_per_day: 3000
+    write_per_hour: 12
+    write_per_day: 30
+    write_cooldown_seconds: 120
+    dm_cooldown_seconds: 60
+    request_interval_seconds: 1.5
+    backoff_steps: [300, 600, 1200, 1800]

@@ -47,7 +47,27 @@ async def _handle_command(dev, components: dict, line: str) -> str:
         return str(result)
     if cmd == "/rollback" and len(parts) == 2:
         return str(dev.rollback(parts[1]))
-    return "命令：/plugins /pending /approve <id> /reject <id> /rollback <插件id>"
+    if cmd == "/bili" and len(parts) >= 2:
+        bili = (components.get("adapters") or {}).get("bilibili")
+        if bili is None:
+            return "B站适配器未启用"
+        sub = parts[1].lower()
+        if sub == "login":
+            r = bili.login_start()
+            if "error" in r:
+                return str(r)
+            print(f"[bili] 用手机 B站App 扫码：{r['url']}")
+            return "二维码已生成。扫完后敲 /bili poll"
+        if sub == "poll":
+            return str(bili.login_poll())
+        if sub == "me":
+            return bili.me()
+        if sub == "dm" and len(parts) == 2:
+            return bili.dm_status()
+        if sub == "dm" and len(parts) >= 3:
+            return str(bili.send_dm(" ".join(parts[2:])))
+        return "用法：/bili login|poll|me|dm|dm <内容>"
+    return "命令：/plugins /pending /approve <id> /reject <id> /rollback <插件id> /bili login|poll|me|dm"
 
 
 async def run_cli(components: dict, cfg: dict) -> None:
@@ -111,6 +131,53 @@ async def run_cli(components: dict, cfg: dict) -> None:
 
     agent = ResidentAgent(cfg, components)
     ident = components["identity"].get()
+
+    qq_cfg = cfg.get("qq", {})
+    qq_owner_ids = [str(x) for x in (qq_cfg.get("owner_ids") or [])]
+    qq_auto_reply = bool(qq_cfg.get("auto_reply", True))
+
+    async def handle_user_message(scope: str, uid: str, text: str) -> None:
+        """外部入口（QQ 等）来的消息：按人建上下文、记忆打归属、自动回复。"""
+        components["last_user_ts"] = time.time()
+        if scope != "private":
+            return  # 群聊暂不自动回，避免刷屏
+        qq_adapter = components["adapters"].get("qq")
+        is_owner = uid in qq_owner_ids
+
+        # owner 在 QQ 里可以下命令（/plugins /pending /approve …）
+        if is_owner and text.startswith("/"):
+            try:
+                if text.strip().lower() == "/health":
+                    result = str(await maintenance.run_once())
+                else:
+                    result = await _handle_command(dev, components, text)
+            except Exception as exc:
+                result = f"[命令失败] {exc}"
+            if qq_adapter is not None:
+                await qq_adapter.send_private(uid, result[:1500])
+            print(f"[qq] {uid} 命令：{text} → {result[:80]}")
+            return
+
+        try:
+            reply = await agent.chat(text, "chat", user_key=uid)
+        except Exception as exc:
+            reply = f"[错误] {exc}"
+        components["memories"].save(
+            "episodic",
+            f"{uid}（QQ）说：{text}；我回：{reply}",
+            source="self",
+            salience=0.4,
+            user_key=uid,
+        )
+        await arbiter.apply(text, reply, user_key=uid)
+        if qq_adapter is not None:
+            try:
+                await qq_adapter.send_private(uid, reply)
+                print(f"[qq] {uid}：{text} → 已回复：{reply[:40]}")
+            except Exception as exc:
+                print(f"[qq] 自动回复失败：{exc}")
+
+    components["on_user_message"] = handle_user_message
 
     def on_proactive(text):
         print(f"她（主动）> {text}")

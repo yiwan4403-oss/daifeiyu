@@ -47,6 +47,31 @@ class ModelGateway:
                 time.sleep(min(2 ** attempt, 8))
         raise last_err
 
+    def chat_vision(self, system: str, user_text: str, data_uri: str, mime: str = "image/png") -> str:
+        """多模态：user 消息带一张内联图片（data URI）。"""
+        if not self.api_key:
+            raise GatewayError("未配置 API Key")
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_text},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                },
+            ],
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "stream": False,
+        }
+        try:
+            return self._post(payload)
+        except GatewayError:
+            raise
+
     def _post(self, payload: dict) -> str:
         req = urllib.request.Request(
             self.base_url,

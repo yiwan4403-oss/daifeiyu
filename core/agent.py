@@ -8,7 +8,7 @@ import time
 from dataclasses import dataclass
 
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.messages import ImageUrl
+from pydantic_ai.messages import BinaryImage
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -255,11 +255,10 @@ class ResidentAgent:
         )
         self.conn.commit()
 
-    def _with_images(self, user_text: str, images: list | None):
-        """有图时把第一张下载成 data URI，走视觉通道；失败则退回纯文本。"""
-        if not images:
-            return user_text
+    async def _chat_vision(self, user_text: str, images: list, tier: str) -> str | None:
+        """视觉通道：下载图片 → data URI → 直连网关（绕过 pydantic-ai 的纯文本模型档案）。"""
         import base64
+        import types
         import urllib.request
 
         try:
@@ -269,11 +268,39 @@ class ResidentAgent:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 data = resp.read(8 * 1024 * 1024)
             if not data:
-                return user_text
-            b64 = base64.b64encode(data).decode("ascii")
-            return [ImageUrl(url=f"data:image/png;base64,{b64}"), user_text]
+                return None
         except Exception:
-            return user_text + "（图片没下载下来）"
+            return None
+        b64 = base64.b64encode(data).decode("ascii")
+        uri = f"data:image/png;base64,{b64}"
+        fake_ctx = types.SimpleNamespace(deps=self.deps, prompt=user_text)
+        system = self._system(fake_ctx)
+        from core.model_gateway import ModelGateway
+
+        gw = ModelGateway(
+            {
+                "base_url": self.base_url,
+                "api_key_env": "DEEPSEEK_API_KEY",
+                "model": self.tier_models.get(tier, self.tier_models["chat"]),
+                "timeout_seconds": 60,
+                "max_tokens": self.max_tokens,
+                "temperature": self.temperature,
+                "retries": 1,
+            }
+        )
+        try:
+            import asyncio as _asyncio
+
+            reply = await _asyncio.to_thread(gw.chat_vision, system, user_text, uri)
+        except Exception:
+            return None
+        self.conn.execute(
+            "INSERT INTO model_usage(ts, task_class, model, in_tokens, out_tokens, cost_est, ok) "
+            "VALUES (?,?,?,0,0,0,1)",
+            (__import__("time").time(), tier + ":vision", self.tier_models.get(tier, "")),
+        )
+        self.conn.commit()
+        return reply.strip()
 
     async def chat(
         self, user_text: str, tier: str = "chat", user_key: str = "", images: list | None = None
@@ -281,7 +308,11 @@ class ResidentAgent:
         if user_key:
             self._current_user = user_key
         self._check_budget()
-        prompt = self._with_images(user_text, images)
+        if images:
+            vision_reply = await self._chat_vision(user_text, images, tier)
+            if vision_reply is not None:
+                return vision_reply
+        prompt = user_text
         agent = Agent(
             self._make(tier),
             deps_type=ResidentDeps,

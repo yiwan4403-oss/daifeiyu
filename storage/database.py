@@ -55,8 +55,33 @@ CREATE TABLE IF NOT EXISTS beliefs (
     source TEXT NOT NULL,          -- user / external / self / llm / hypothesis
     verified INTEGER DEFAULT 0,    -- 模型输出不得自动标 1
     confidence REAL DEFAULT 0.5,
+    stage TEXT DEFAULT 'observation',  -- observation/hypothesis/knowledge/view
+    evidence TEXT DEFAULT '[]',
     ts REAL NOT NULL,
     updated_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS belief_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    belief_id INTEGER NOT NULL,
+    old_stage TEXT,
+    new_stage TEXT,
+    old_content TEXT,
+    new_content TEXT,
+    reason TEXT,
+    ts REAL
+);
+
+CREATE TABLE IF NOT EXISTS outbox (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dedupe_key TEXT NOT NULL UNIQUE,
+    action TEXT NOT NULL,
+    payload TEXT DEFAULT '{}',
+    status TEXT DEFAULT 'pending',   -- pending/executing/done/failed
+    attempts INTEGER DEFAULT 0,
+    created_at REAL,
+    updated_at REAL,
+    detail TEXT DEFAULT ''
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(content, tokenize='unicode61');
@@ -138,10 +163,12 @@ def open_db(path: str) -> sqlite3.Connection:
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
-    # 迁移：旧库补 meta / user_key 列
+    # 迁移：旧库补列
     for ddl in (
         "ALTER TABLE memories ADD COLUMN meta TEXT DEFAULT '{}'",
         "ALTER TABLE memories ADD COLUMN user_key TEXT DEFAULT ''",
+        "ALTER TABLE beliefs ADD COLUMN stage TEXT DEFAULT 'observation'",
+        "ALTER TABLE beliefs ADD COLUMN evidence TEXT DEFAULT '[]'",
     ):
         try:
             conn.execute(ddl)

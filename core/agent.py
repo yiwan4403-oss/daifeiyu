@@ -31,6 +31,7 @@ class ResidentDeps:
     dev: object = None
     adapters: object = None
     mcp: object = None
+    diary: object = None
 
 
 def _remember_tool(ctx: RunContext[ResidentDeps], text: str) -> str:
@@ -194,6 +195,7 @@ class ResidentAgent:
             dev=components.get("dev"),
             adapters=components.get("adapters"),
             mcp=components.get("mcp"),
+            diary=components.get("diary"),
         )
         self._spent_today = 0.0
         self._current_user = "user"
@@ -222,6 +224,7 @@ class ResidentAgent:
             autobiography=autobiography,
             beliefs=beliefs,
             user_label=self._current_user,
+            inner_diary=(d.diary.latest("inner") if d.diary else ""),
         )
 
     def _check_budget(self) -> None:

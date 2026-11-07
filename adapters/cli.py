@@ -102,6 +102,11 @@ async def run_cli(components: dict, cfg: dict) -> None:
         qq_adapter.start()
         components["adapters"]["qq"] = qq_adapter
         print(f"[qq] OneBot 反向 WS 监听 {qq_cfg.get('host')}:{qq_cfg.get('port')}")
+
+    from security.outbox import Outbox
+
+    components["outbox"] = Outbox(components["conn"])
+    components["outbox"].recover()
     mcp_hub = MCPHub((cfg.get("mcp") or {}).get("servers", []))
     await mcp_hub.start_all()
     components["mcp"] = mcp_hub
@@ -115,6 +120,12 @@ async def run_cli(components: dict, cfg: dict) -> None:
                 report = await maintenance.maybe_run()
                 if report:
                     print(f"[life] 自我维护完成：{report['metrics']}")
+                # 双日记：21 点后写今天的（生活 + 内心，同日互引）
+                now = time.localtime()
+                if now.tm_hour >= 21:
+                    result = await components["diary"].daily()
+                    if result:
+                        print(f"[life] 日记已写：{result}")
             except Exception as exc:
                 print(f"[life] 自我维护失败：{exc}")
 
@@ -138,8 +149,31 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components["qq_owner_ids"] = qq_owner_ids
 
     from life.bili_daily import BiliDaily
+    from life.diary import Diary
 
     components["bili_daily"] = BiliDaily(components, cfg)
+    components["diary"] = Diary(components, cfg)
+
+    async def qq_send_safe(uid: str, text: str, kind: str = "reply") -> bool:
+        """所有对外发送经 outbox：幂等，防重启重复发。"""
+        import hashlib
+
+        outbox = components["outbox"]
+        qq_adapter = components["adapters"].get("qq")
+        if qq_adapter is None:
+            return False
+        key = f"qq:{uid}:{time.strftime('%Y-%m-%d')}:{hashlib.md5(text.encode('utf-8')).hexdigest()[:10]}"
+        tid = outbox.enqueue("qq_send", key, {"uid": uid, "text": text, "kind": kind})
+        task = outbox.claim(tid)
+        if task is None:
+            return False  # 已在执行/已完成
+        try:
+            await qq_adapter.send_private(uid, text)
+            outbox.finish(tid, True)
+            return True
+        except Exception as exc:
+            outbox.finish(tid, False, str(exc))
+            return False
 
     async def handle_user_message(scope: str, uid: str, text: str) -> None:
         """外部入口（QQ 等）来的消息：按人建上下文、记忆打归属、自动回复。"""
@@ -159,7 +193,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
             except Exception as exc:
                 result = f"[命令失败] {exc}"
             if qq_adapter is not None:
-                await qq_adapter.send_private(uid, result[:1500])
+                await qq_send_safe(uid, result[:1500], kind="command")
             print(f"[qq] {uid} 命令：{text} → {result[:80]}")
             return
 
@@ -176,11 +210,11 @@ async def run_cli(components: dict, cfg: dict) -> None:
         )
         await arbiter.apply(text, reply, user_key=uid)
         if qq_adapter is not None:
-            try:
-                await qq_adapter.send_private(uid, reply)
+            ok = await qq_send_safe(uid, reply, kind="reply")
+            if ok:
                 print(f"[qq] {uid}：{text} → 已回复：{reply[:40]}")
-            except Exception as exc:
-                print(f"[qq] 自动回复失败：{exc}")
+            else:
+                print(f"[qq] {uid}：{text} → 回复已入队（幂等），未实际发送")
 
     components["on_user_message"] = handle_user_message
 

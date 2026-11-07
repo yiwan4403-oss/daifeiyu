@@ -10,10 +10,13 @@ def build_context(
     autobiography: str = "",
     beliefs: list | None = None,
     user_label: str = "",
+    inner_diary: str = "",
 ) -> str:
     parts = [f"你是 {identity.name}。", identity.core_persona or ""]
     if user_label:
         parts.append(f"现在跟你说话的人是：{user_label}（不同的人要分开对待，别把别人的事算到他头上）。")
+    if inner_diary:
+        parts.append(f"你最近的内心日记（你的想法，可作参考）：{inner_diary[:160]}。")
     if autobiography:
         parts.append(f"你对自己的认知（自传）：{autobiography[:200]}")
     if emotion_summary:

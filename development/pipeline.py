@@ -99,6 +99,31 @@ class DevPipeline:
         if not art:
             return {"status": "error", "detail": "产物丢失"}
         artifact, sandbox_dir = art["artifact"], art["sandbox_dir"]
+        outbox = self.components.get("outbox")
+        if outbox is not None:
+            key = f"install:{artifact['id']}:{artifact['version']}"
+            tid = outbox.enqueue(
+                "install_plugin", key,
+                {"plugin": artifact["id"], "version": artifact["version"]},
+            )
+            task = outbox.claim(tid)
+            if task is None:
+                return {"status": "skipped", "detail": "该版本已安装或正在安装（幂等）"}
+            try:
+                self.builder.assemble(artifact["id"], sandbox_dir)
+                self.loader.enable(artifact["id"], artifact["version"])
+            except Exception as exc:
+                outbox.finish(tid, False, str(exc))
+                self.audit.log("human", "install_plugin", artifact["id"], "failed", str(exc))
+                return {"status": "failed", "detail": str(exc)}
+            outbox.finish(tid, True)
+            self.audit.log("human", "install_plugin", artifact["id"], "installed", artifact["version"])
+            return {
+                "status": "installed",
+                "plugin": artifact["id"],
+                "version": artifact["version"],
+                "capabilities": self.registry.capabilities(),
+            }
         try:
             self.builder.assemble(artifact["id"], sandbox_dir)
             self.loader.enable(artifact["id"], artifact["version"])

@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## [0.9.0] - 2026-11-07
+
+落实 GPT 审查四必补项：
+
+- 双日记分离：生活日记（经历/做了/遇到谁）与内心日记（在意/想法/变化，反思产物），
+  同日互引（links），分别注入上下文；21 点后自动写
+- 知识与观点演化：beliefs 增加 stage（observation→hypothesis→knowledge→view）+
+  belief_history（旧判断与原因永不删除）；list_verified 只认 knowledge/view
+- 人格质量测试集：六项（一致性/情绪合理性/记得共同经历/表达兴趣/拒绝违背原则/
+  无人时主动安排）+ scripts/qa.py 一键执行（22 用例）
+- 事件可靠性：Outbox 持久化队列（幂等 dedupe_key + pending/executing/done/failed
+  + 重启恢复 executing→pending）；QQ 发送与插件安装全部经 outbox
+- 测试：54/54
+
 ## [0.8.1] - 2026-11-06
 
 B 站生物钟（借 dsh-bili-whale 设计）：

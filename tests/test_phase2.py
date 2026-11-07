@@ -79,9 +79,17 @@ def test_belief_layers(tmp_path):
     b = BeliefManager(components["conn"])
     bid = b.add("模型自己推测的事", source="llm", verified=0)
     assert bid in [x["id"] for x in b.list_unverified()]
+    # 未升级到 knowledge/view 前不算“确认过的事实”
     b.verify(bid, ok=True)
+    assert b.list_verified() == []
+    # 演化：observation → hypothesis → knowledge，历史留痕
+    b.evolve(bid, "hypothesis", "有一些证据", evidence=["看到一次"])
+    assert b.get(bid)["stage"] == "hypothesis"
+    b.evolve(bid, "knowledge", "多次验证通过", evidence=["又看到两次"])
     assert b.list_verified() == ["模型自己推测的事"]
-    assert b.list_unverified() == []
+    hist = b.history(bid)
+    assert hist[0]["old_stage"] == "hypothesis" and hist[0]["new_stage"] == "knowledge"
+    assert len(hist) == 2
 
 
 def test_autobiography_compose(tmp_path, monkeypatch):

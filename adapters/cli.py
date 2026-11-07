@@ -211,8 +211,13 @@ async def run_cli(components: dict, cfg: dict) -> None:
                     print("[proactive] 没有配置 owner，跳过投递")
                     continue
                 for uid in qq_owner_ids:
-                    ok = await qq_send_safe(uid, f"（她主动找你）{text}", kind="proactive")
-                    print(f"[proactive] {'已投递' if ok else '投递失败'} → {uid}")
+                    ok = await qq_send_safe(uid, text, kind="proactive")
+                    if ok:
+                        # “主动”只记在内部事件里，正文不带任何括号前缀
+                        components["events"].append(
+                            "ProactiveMessageSent", "private", "self", "", text
+                        )
+                    print(f"[proactive] {'已投递' if ok else '投递失败'} → {uid}：{text[:40]}")
             except Exception as exc:
                 print(f"[proactive] 投递异常：{exc}")
 

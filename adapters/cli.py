@@ -47,6 +47,10 @@ async def _handle_command(dev, components: dict, line: str) -> str:
         return str(result)
     if cmd == "/rollback" and len(parts) == 2:
         return str(dev.rollback(parts[1]))
+    if cmd == "/proactive" and len(parts) >= 2:
+        text = " ".join(parts[1:])
+        components["bus"].publish("proactive", text)
+        return "已触发一次主动投递（受免打扰与每日额度限制）"
     if cmd == "/qq" and len(parts) >= 2:
         qq = (components.get("adapters") or {}).get("qq")
         if qq is None:
@@ -177,7 +181,8 @@ async def run_cli(components: dict, cfg: dict) -> None:
         if qq_adapter is None:
             return False
         key = f"qq:{uid}:{time.strftime('%Y-%m-%d')}:{hashlib.md5(text.encode('utf-8')).hexdigest()[:10]}"
-        tid = outbox.enqueue("qq_send", key, {"uid": uid, "text": text, "kind": kind})
+        action = "proactive_qq" if kind == "proactive" else "qq_send"
+        tid = outbox.enqueue(action, key, {"uid": uid, "text": text, "kind": kind})
         task = outbox.claim(tid)
         if task is None:
             return False  # 已在执行/已完成
@@ -188,6 +193,30 @@ async def run_cli(components: dict, cfg: dict) -> None:
         except Exception as exc:
             outbox.finish(tid, False, str(exc))
             return False
+
+    from life import proactive as proactive_policy
+
+    pro_cfg = cfg.get("proactive", {})
+    pro_queue: asyncio.Queue = asyncio.Queue()
+
+    async def proactive_loop():
+        while True:
+            text = await pro_queue.get()
+            try:
+                allowed, why = proactive_policy.can_send(components["conn"], pro_cfg)
+                if not allowed:
+                    print(f"[proactive] 未投递：{why}")
+                    continue
+                if not qq_owner_ids:
+                    print("[proactive] 没有配置 owner，跳过投递")
+                    continue
+                for uid in qq_owner_ids:
+                    ok = await qq_send_safe(uid, f"（她主动找你）{text}", kind="proactive")
+                    print(f"[proactive] {'已投递' if ok else '投递失败'} → {uid}")
+            except Exception as exc:
+                print(f"[proactive] 投递异常：{exc}")
+
+    proactive_task = asyncio.create_task(proactive_loop())
 
     async def handle_user_message(scope: str, uid: str, text: str, images=None) -> None:
         """外部入口（QQ 等）来的消息：按人建上下文、记忆打归属、自动回复。"""
@@ -234,6 +263,10 @@ async def run_cli(components: dict, cfg: dict) -> None:
 
     def on_proactive(text):
         print(f"她（主动）> {text}")
+        try:
+            pro_queue.put_nowait(text)
+        except Exception:
+            pass
 
     components["bus"].subscribe("proactive", on_proactive)
     scheduler = Scheduler(cfg, components)
@@ -283,8 +316,9 @@ async def run_cli(components: dict, cfg: dict) -> None:
         scheduler.stop.set()
         sched_task.cancel()
         maint_task.cancel()
+        proactive_task.cancel()
         try:
-            await asyncio.gather(sched_task, maint_task, return_exceptions=True)
+            await asyncio.gather(sched_task, maint_task, proactive_task, return_exceptions=True)
         except Exception:
             pass
         await mcp_hub.stop_all()

@@ -82,3 +82,9 @@ bili_daily:
     - 我的世界
     - 独立游戏
     - 科普
+
+proactive:
+  enabled: true
+  max_per_day: 3
+  quiet_start_hour: 23
+  quiet_end_hour: 8

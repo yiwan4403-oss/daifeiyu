@@ -52,6 +52,7 @@ qq:
   host: 127.0.0.1
   port: 6700
   auto_reply: true
+  min_send_interval_seconds: 5
   owner_ids:
   - "2338033822"
 bilibili:

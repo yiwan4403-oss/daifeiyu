@@ -47,6 +47,17 @@ async def _handle_command(dev, components: dict, line: str) -> str:
         return str(result)
     if cmd == "/rollback" and len(parts) == 2:
         return str(dev.rollback(parts[1]))
+    if cmd == "/qq" and len(parts) >= 2:
+        qq = (components.get("adapters") or {}).get("qq")
+        if qq is None:
+            return "QQ 适配器未启用"
+        if parts[1].lower() == "avatar" and len(parts) == 3:
+            try:
+                await qq.set_avatar(parts[2])
+                return "头像已设置"
+            except Exception as exc:
+                return f"[头像设置失败] {exc}"
+        return "用法：/qq avatar <本地图片绝对路径>"
     if cmd == "/bili" and len(parts) >= 2:
         bili = (components.get("adapters") or {}).get("bilibili")
         if bili is None:
@@ -175,7 +186,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
             outbox.finish(tid, False, str(exc))
             return False
 
-    async def handle_user_message(scope: str, uid: str, text: str) -> None:
+    async def handle_user_message(scope: str, uid: str, text: str, images=None) -> None:
         """外部入口（QQ 等）来的消息：按人建上下文、记忆打归属、自动回复。"""
         components["last_user_ts"] = time.time()
         if scope != "private":
@@ -198,7 +209,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
             return
 
         try:
-            reply = await agent.chat(text, "chat", user_key=uid)
+            reply = await agent.chat(text, "chat", user_key=uid, images=images)
         except Exception as exc:
             reply = f"[错误] {exc}"
         components["memories"].save(

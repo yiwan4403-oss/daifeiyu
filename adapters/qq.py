@@ -12,6 +12,34 @@ from adapters.base import Adapter
 from websockets.asyncio.server import serve
 
 
+def _parse_message(message) -> tuple[str, list[str]]:
+    """OneBot message：字符串直接返回；数组按段提取文本与图片 url。"""
+    if isinstance(message, str):
+        return message, []
+    if not isinstance(message, list):
+        return str(message), []
+    texts, images = [], []
+    for seg in message:
+        if not isinstance(seg, dict):
+            continue
+        stype = seg.get("type")
+        data = seg.get("data") or {}
+        if stype == "text":
+            texts.append(str(data.get("text", "")))
+        elif stype == "image":
+            url = data.get("url") or ""
+            if url:
+                images.append(url)
+            texts.append("[图片]")
+        elif stype == "face":
+            texts.append("[表情]")
+        elif stype == "at":
+            texts.append(f"@{data.get('qq', '')}")
+        else:
+            texts.append(f"[{stype}]")
+    return "".join(texts), images
+
+
 class OneBotAdapter(Adapter):
     name = "qq"
 
@@ -20,10 +48,12 @@ class OneBotAdapter(Adapter):
         cfg = cfg or {}
         self.host = cfg.get("host", "127.0.0.1")
         self.port = int(cfg.get("port", 6700))
+        self.min_send_interval = float(cfg.get("min_send_interval_seconds", 5))
         self.conns: set = set()
         self._pending_actions: dict[str, asyncio.Future] = {}
-        self._approved_actions: dict[int, object] = {}  # approval_id -> coroutine
+        self._approved_actions: dict[int, object] = {}
         self._server = None
+        self._last_send = 0.0
 
     def capabilities(self) -> list[str]:
         return ["qq_send"]
@@ -71,7 +101,7 @@ class OneBotAdapter(Adapter):
         scope = "private" if msg_type == "private" else "group"
         sender = data.get("sender") or {}
         user_id = str(sender.get("user_id", "?"))
-        text = str(data.get("message", ""))
+        text, images = _parse_message(data.get("message", ""))
         self.components["events"].append(
             "UserMessageReceived", scope, "user", user_id, text
         )
@@ -81,7 +111,7 @@ class OneBotAdapter(Adapter):
         handler = self.components.get("on_user_message")
         if handler is not None:
             try:
-                await handler(scope, user_id, text)
+                await handler(scope, user_id, text, images)
             except Exception as exc:
                 print(f"[qq] 处理消息失败：{exc}")
 
@@ -99,6 +129,12 @@ class OneBotAdapter(Adapter):
     async def send_private(self, user_id: str, text: str) -> str:
         if not self.conns:
             raise ConnectionError("没有 OneBot 连接")
+        # 发送限速（风控缓解）：两次发送至少间隔 min_send_interval 秒
+        now = time.time()
+        wait = self.min_send_interval - (now - self._last_send)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        self._last_send = time.time()
         echo = f"resident{int(time.time() * 1000)}"
         fut = asyncio.get_running_loop().create_future()
         self._pending_actions[echo] = fut
@@ -117,6 +153,34 @@ class OneBotAdapter(Adapter):
             await ws.send(payload)
         try:
             await asyncio.wait_for(fut, timeout=10)
+        except asyncio.TimeoutError:
+            self._pending_actions.pop(echo, None)
+            raise ConnectionError("OneBot 未响应")
+        return "sent"
+
+    async def set_avatar(self, image_path: str) -> str:
+        """设置 QQ 头像（NapCat set_qq_avatar）。image_path 为本地绝对路径。"""
+        import os
+
+        if not os.path.isfile(image_path):
+            raise FileNotFoundError(image_path)
+        if not self.conns:
+            raise ConnectionError("没有 OneBot 连接")
+        echo = f"avatar{int(time.time() * 1000)}"
+        fut = asyncio.get_running_loop().create_future()
+        self._pending_actions[echo] = fut
+        payload = json.dumps(
+            {
+                "action": "set_qq_avatar",
+                "params": {"file": os.path.abspath(image_path)},
+                "echo": echo,
+            }
+        )
+        print(f"[qq] 设置头像：{payload[:120]}")
+        for ws in list(self.conns):
+            await ws.send(payload)
+        try:
+            await asyncio.wait_for(fut, timeout=20)
         except asyncio.TimeoutError:
             self._pending_actions.pop(echo, None)
             raise ConnectionError("OneBot 未响应")

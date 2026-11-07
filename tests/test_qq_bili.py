@@ -86,6 +86,34 @@ def test_qq_reverse_ws_roundtrip(tmp_path):
     asyncio.run(run())
 
 
+def test_qq_parse_message_segments():
+    from adapters.qq import _parse_message
+
+    assert _parse_message("纯文本") == ("纯文本", [])
+    text, images = _parse_message(
+        [
+            {"type": "text", "data": {"text": "看这个"}},
+            {"type": "image", "data": {"url": "http://x/img.png"}},
+            {"type": "face", "data": {"id": "1"}},
+        ]
+    )
+    assert text == "看这个[图片][表情]"
+    assert images == ["http://x/img.png"]
+
+
+def test_qq_avatar_action_missing_file(tmp_path):
+    async def run():
+        components = make_components(tmp_path)
+        adapter = OneBotAdapter(components, {"host": "127.0.0.1", "port": QQ_PORT + 2})
+        try:
+            await adapter.set_avatar(str(tmp_path / "nope.png"))
+        except FileNotFoundError:
+            return True
+        return False
+
+    assert asyncio.run(run()) is True
+
+
 def test_qq_send_requires_approval_chain(tmp_path):
     components = make_components(tmp_path)
     adapter = OneBotAdapter(components, {"host": "127.0.0.1", "port": QQ_PORT + 1})

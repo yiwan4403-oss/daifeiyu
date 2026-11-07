@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ImageUrl
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -254,10 +255,33 @@ class ResidentAgent:
         )
         self.conn.commit()
 
-    async def chat(self, user_text: str, tier: str = "chat", user_key: str = "") -> str:
+    def _with_images(self, user_text: str, images: list | None):
+        """有图时把第一张下载成 data URI，走视觉通道；失败则退回纯文本。"""
+        if not images:
+            return user_text
+        import base64
+        import urllib.request
+
+        try:
+            req = urllib.request.Request(
+                images[0], headers={"User-Agent": "Resident/0.9"}
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = resp.read(8 * 1024 * 1024)
+            if not data:
+                return user_text
+            b64 = base64.b64encode(data).decode("ascii")
+            return [ImageUrl(url=f"data:image/png;base64,{b64}"), user_text]
+        except Exception:
+            return user_text + "（图片没下载下来）"
+
+    async def chat(
+        self, user_text: str, tier: str = "chat", user_key: str = "", images: list | None = None
+    ) -> str:
         if user_key:
             self._current_user = user_key
         self._check_budget()
+        prompt = self._with_images(user_text, images)
         agent = Agent(
             self._make(tier),
             deps_type=ResidentDeps,

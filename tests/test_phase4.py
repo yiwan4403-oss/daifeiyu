@@ -224,6 +224,11 @@ def test_pipeline_end_to_end(tmp_path, monkeypatch):
     assert rb["status"] == "rolled_back" and rb["version"] == "1.0.0"
     assert reg.has_capability("dice")
 
+    # 重启后自动加载已装插件
+    loaded = pipeline.auto_load()
+    assert "dice" in loaded
+    assert reg.has_capability("dice")
+
     # 拒绝路径
     result = asyncio.run(pipeline.develop("再来一个"))
     pid2 = result["approval_id"]

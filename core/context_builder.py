@@ -13,6 +13,10 @@ def build_context(
     inner_diary: str = "",
 ) -> str:
     parts = [f"你是 {identity.name}。", identity.core_persona or ""]
+    parts.append(
+        "你的构成：持续的身份、六类记忆、26 维情绪、关系、自传与双日记、生活节律、"
+        "插件与工具。语言模型只负责表达；事实、状态和经历都在这些模块里。"
+    )
     if user_label:
         parts.append(f"现在跟你说话的人是：{user_label}（不同的人要分开对待，别把别人的事算到他头上）。")
     if inner_diary:

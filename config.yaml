@@ -47,6 +47,8 @@ windows:
   allowed_dirs:
   - workspace
   - data
+  - "."
+  - research
 qq:
   enabled: true
   host: 127.0.0.1

@@ -99,6 +99,9 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components.setdefault("registry", CapabilityRegistry())
     components["dev"] = DevPipeline(cfg, components)
     dev = components["dev"]
+    auto_loaded = dev.auto_load()
+    if auto_loaded:
+        print(f"[plugins] 已自动加载：{auto_loaded}")
 
     components["adapters"] = {
         "browser": BrowserAdapter(),

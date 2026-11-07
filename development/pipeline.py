@@ -37,6 +37,26 @@ class DevPipeline:
         self.components = components
         self._artifacts: dict[str, dict] = {}  # proposal_id -> artifact
 
+    def auto_load(self) -> list[str]:
+        """启动时把已安装插件（每个插件最高版本）加载回来。"""
+        loaded = []
+        if not os.path.isdir(self.plugins_dir):
+            return loaded
+        for pid in sorted(os.listdir(self.plugins_dir)):
+            pdir = os.path.join(self.plugins_dir, pid)
+            if not os.path.isdir(pdir):
+                continue
+            versions = self.loader.versions(pid)
+            if not versions:
+                continue
+            try:
+                self.loader.enable(pid, versions[-1])
+                loaded.append(pid)
+            except Exception as exc:
+                self.audit.log("self", "autoload", pid, "failed", str(exc))
+                print(f"[plugins] 自动加载失败 {pid}: {exc}")
+        return loaded
+
     # ---- 查询 ----
     def capabilities(self) -> list[str]:
         return self.registry.capabilities()

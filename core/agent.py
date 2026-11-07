@@ -47,14 +47,27 @@ def _recall_tool(ctx: RunContext[ResidentDeps], query: str) -> str:
     return "\n".join(hits) if hits else "没想起相关的事"
 
 
+BUILTIN_TOOLS = (
+    "remember", "recall", "capabilities", "dev_request", "web_fetch",
+    "file_list", "file_read", "mcp_list", "mcp_call",
+    "bilibili_search", "bilibili_video", "bilibili_me", "qq_send",
+)
+
+
 def _capabilities_tool(ctx: RunContext[ResidentDeps]) -> str:
-    """查看自己已有的能力和工具。"""
+    """查看自己真实的构成：内置工具 + 已装插件 + 模块。"""
+    parts = [f"内置工具（{len(BUILTIN_TOOLS)} 个）：" + "、".join(BUILTIN_TOOLS)]
     dev = ctx.deps.dev
-    if dev is None:
-        return "开发引擎未启用"
-    caps = dev.capabilities()
-    tools = dev.tools()
-    return f"能力：{caps or '无'}；工具：{tools or '无'}"
+    if dev is not None:
+        parts.append(f"已安装插件：{dev.loaded() or '无'}")
+        parts.append(f"插件提供的能力：{dev.capabilities() or '无'}")
+    parts.append(
+        "你的组成：core（编排/事件/网关）· identity（身份、26 维情绪、关系）· "
+        "memory（六类记忆、事件、Belief、自传）· life（欲望/目标/活动/节律/生物钟/双日记）· "
+        "development（开发引擎）· adapters（QQ/B站/网页/文件/MCP）"
+    )
+    parts.append("注意：语言模型只负责表达，事实与状态在这些模块里。")
+    return "\n".join(parts)
 
 
 async def _dev_request_tool(ctx: RunContext[ResidentDeps], requirement: str) -> str:

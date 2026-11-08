@@ -208,14 +208,16 @@ async def run_cli(components: dict, cfg: dict) -> None:
     components["diary"] = Diary(components, cfg)
 
     async def qq_send_safe(uid: str, text: str, kind: str = "reply") -> bool:
-        """所有对外发送经 outbox：幂等，防重启重复发。"""
-        import hashlib
+        """所有对外发送经 outbox。
 
+        去重键带纳秒 nonce：只防“同一调用重复入队”，不吞“同内容的两次回复”。
+        """
         outbox = components["outbox"]
         qq_adapter = components["adapters"].get("qq")
         if qq_adapter is None:
             return False
-        key = f"qq:{uid}:{time.strftime('%Y-%m-%d')}:{hashlib.md5(text.encode('utf-8')).hexdigest()[:10]}"
+        nonce = time.time_ns()
+        key = f"qq:{uid}:{kind}:{time.strftime('%Y-%m-%d')}:{nonce}"
         action = "proactive_qq" if kind == "proactive" else "qq_send"
         tid = outbox.enqueue(action, key, {"uid": uid, "text": text, "kind": kind})
         task = outbox.claim(tid)

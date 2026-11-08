@@ -100,6 +100,21 @@ async def run_cli(components: dict, cfg: dict) -> None:
     from development.self_maintenance import SelfMaintenance
     from extensions.registry import CapabilityRegistry
 
+    from security.outbox import Outbox
+    from security.permission import PermissionManager
+
+    sec_cfg = cfg.get("security", {})
+    components["permissions"] = PermissionManager(
+        max_level=int(sec_cfg.get("max_level", 1)),
+        auto_approve=bool(sec_cfg.get("auto_approve", False)),
+    )
+    print(
+        f"[security] 权限等级 L{components['permissions'].max_level}"
+        f"（自动批准={components['permissions'].auto_approve}）"
+    )
+    components["outbox"] = Outbox(components["conn"])
+    components["outbox"].recover()
+
     components.setdefault("registry", CapabilityRegistry())
     components["dev"] = DevPipeline(cfg, components)
     dev = components["dev"]
@@ -107,9 +122,13 @@ async def run_cli(components: dict, cfg: dict) -> None:
     if auto_loaded:
         print(f"[plugins] 已自动加载：{auto_loaded}")
 
+    windows_adapter = WindowsAdapter(
+        cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"])
+    )
+    windows_adapter.permissions = components["permissions"]
     components["adapters"] = {
         "browser": BrowserAdapter(),
-        "windows": WindowsAdapter(cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"])),
+        "windows": windows_adapter,
         "bilibili": BilibiliAdapter(cfg.get("bilibili", {})),
     }
     qq_cfg = cfg.get("qq", {})
@@ -122,9 +141,21 @@ async def run_cli(components: dict, cfg: dict) -> None:
         print(f"[qq] OneBot 反向 WS 监听 {qq_cfg.get('host')}:{qq_cfg.get('port')}")
 
     from security.outbox import Outbox
+    from security.permission import PermissionManager
+
+    sec_cfg = cfg.get("security", {})
+    components["permissions"] = PermissionManager(
+        max_level=int(sec_cfg.get("max_level", 1)),
+        auto_approve=bool(sec_cfg.get("auto_approve", False)),
+    )
+    print(
+        f"[security] 权限等级 L{components['permissions'].max_level}"
+        f"（自动批准={components['permissions'].auto_approve}）"
+    )
 
     components["outbox"] = Outbox(components["conn"])
     components["outbox"].recover()
+    mcp_hub = MCPHub((cfg.get("mcp") or {}).get("servers", []))
     mcp_hub = MCPHub((cfg.get("mcp") or {}).get("servers", []))
     await mcp_hub.start_all()
     components["mcp"] = mcp_hub

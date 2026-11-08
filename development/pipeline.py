@@ -31,7 +31,7 @@ class DevPipeline:
         self.researcher = Researcher()
         self.registry = components.get("registry") or CapabilityRegistry()
         self.loader = PluginLoader(self.plugins_dir, self.registry, components)
-        self.permissions = PermissionManager()
+        self.permissions = components.get("permissions") or PermissionManager()
         self.approvals = ApprovalManager()
         self.audit = AuditLog(_conn=components["conn"])
         self.components = components
@@ -101,13 +101,20 @@ class DevPipeline:
         self._artifacts[proposal_id] = {"artifact": artifact, "sandbox_dir": sandbox_dir}
         self.audit.log("resident", "run_tests", artifact["id"], "passed")
         self.audit.log("resident", "install_plugin", artifact["id"], "proposed", f"id={proposal_id}")
-        return {
+        result = {
             "status": "proposed",
             "approval_id": proposal_id,
             "plugin": artifact["id"],
             "version": artifact["version"],
             "test_output": output[-300:],
         }
+        # 完全权限模式：测试通过即自动批准安装
+        if self.permissions.allowed("install_plugin") and getattr(self.permissions, "auto_approve", False):
+            installed = self.approve(proposal_id, True)
+            installed["auto_approved"] = True
+            installed["test_output"] = result["test_output"]
+            return installed
+        return result
 
     def approve(self, approval_id: int, ok: bool) -> dict:
         """人工裁决；批准后装配+加载（L2）。"""

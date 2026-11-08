@@ -88,3 +88,7 @@ proactive:
   max_per_day: 3
   quiet_start_hour: 23
   quiet_end_hour: 8
+
+security:
+  max_level: 3
+  auto_approve: true

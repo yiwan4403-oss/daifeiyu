@@ -49,7 +49,8 @@ def _recall_tool(ctx: RunContext[ResidentDeps], query: str) -> str:
 
 BUILTIN_TOOLS = (
     "remember", "recall", "capabilities", "dev_request", "web_fetch",
-    "file_list", "file_read", "mcp_list", "mcp_call",
+    "file_list", "file_read", "file_write", "run_command",
+    "mcp_list", "mcp_call",
     "bilibili_search", "bilibili_video", "bilibili_me", "qq_send",
 )
 
@@ -108,6 +109,22 @@ def _file_read_tool(ctx: RunContext[ResidentDeps], path: str) -> str:
     if adapter is None:
         return "Windows 适配器未启用"
     return adapter.read_file(path)
+
+
+def _file_write_tool(ctx: RunContext[ResidentDeps], path: str, content: str) -> str:
+    """在白名单目录内写文件（完全权限模式下可用）。"""
+    adapter = (ctx.deps.adapters or {}).get("windows")
+    if adapter is None:
+        return "Windows 适配器未启用"
+    return adapter.write_file(path, content)
+
+
+def _run_command_tool(ctx: RunContext[ResidentDeps], command: str) -> str:
+    """执行命令（需要最高权限等级）。"""
+    adapter = (ctx.deps.adapters or {}).get("windows")
+    if adapter is None:
+        return "Windows 适配器未启用"
+    return adapter.run_command(command)
 
 
 def _mcp_list_tool(ctx: RunContext[ResidentDeps]) -> str:
@@ -338,6 +355,8 @@ class ResidentAgent:
                 _web_fetch_tool,
                 _file_list_tool,
                 _file_read_tool,
+                _file_write_tool,
+                _run_command_tool,
                 _mcp_list_tool,
                 _mcp_call_tool,
                 _bili_search_tool,

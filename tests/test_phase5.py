@@ -66,6 +66,26 @@ def test_windows_whitelist(tmp_path):
     assert w.read_file(str(tmp_path / "outside.txt")).startswith("[拒绝]")
 
 
+def test_windows_write_and_run_gated(tmp_path):
+    from security.permission import PermissionManager
+
+    allowed = str(tmp_path / "ws")
+    os.makedirs(allowed, exist_ok=True)
+    # 低权限：拒绝
+    low = WindowsAdapter([allowed])
+    low.permissions = PermissionManager(max_level=1)
+    assert low.write_file(os.path.join(allowed, "a.txt"), "x").startswith("[拒绝]")
+    assert low.run_command("echo hi").startswith("[拒绝]")
+    # 完全权限：允许
+    high = WindowsAdapter([allowed])
+    high.permissions = PermissionManager(max_level=3, auto_approve=True)
+    target = os.path.join(allowed, "a.txt")
+    assert "写入" in high.write_file(target, "hello")
+    assert open(target, encoding="utf-8").read() == "hello"
+    out = high.run_command("echo hi")
+    assert "hi" in out
+
+
 def test_event_payload_sanitized(tmp_path):
     components = make_components(tmp_path)
     components["events"].append("UserMessageReceived", "private", "user", "u", "正常\x00消息\x07")

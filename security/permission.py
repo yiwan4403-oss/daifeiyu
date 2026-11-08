@@ -7,7 +7,13 @@ from dataclasses import dataclass, field
 @dataclass
 class PermissionManager:
     """动作 → 所需等级；L0 只读/规划，L1 沙箱内生成与测试，
-    L2 安装/依赖/外部操作（需人工审批），L3 核心修改/删除（仅人工）。"""
+    L2 安装/依赖/外部操作（需人工审批），L3 核心修改/删除（仅人工）。
+
+    max_level 由配置控制：3 = 完全权限（审批自动通过）。
+    """
+
+    max_level: int = 1
+    auto_approve: bool = False
 
     _matrix: dict = field(default_factory=lambda: {
         "read": 0,
@@ -19,6 +25,8 @@ class PermissionManager:
         "upgrade_plugin": 2,
         "rollback_plugin": 2,
         "uninstall_plugin": 2,
+        "write_file": 2,
+        "run_command": 3,
         "modify_core": 3,
         "modify_identity": 3,
         "delete_data": 3,
@@ -27,8 +35,13 @@ class PermissionManager:
     def level_of(self, action: str) -> int:
         return self._matrix.get(action, 3)
 
-    def check(self, action: str, granted_level: int) -> bool:
-        return granted_level >= self.level_of(action)
+    def allowed(self, action: str) -> bool:
+        """当前权限等级是否允许该动作。"""
+        return self.max_level >= self.level_of(action)
+
+    def check(self, action: str, granted_level: int | None = None) -> bool:
+        level = self.max_level if granted_level is None else granted_level
+        return level >= self.level_of(action)
 
 
 @dataclass

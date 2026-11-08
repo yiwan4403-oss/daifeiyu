@@ -52,3 +52,42 @@ class WindowsAdapter(Adapter):
             return f"[错误] {exc}"
         text = data[:max_bytes].decode("utf-8", errors="replace")
         return f"[本地文件] {text}"
+
+    def _allowed(self, action: str) -> bool:
+        perm = getattr(self, "permissions", None)
+        return True if perm is None else perm.allowed(action)
+
+    def write_file(self, path: str, content: str) -> str:
+        if not self._allowed("write_file"):
+            return "[拒绝] 当前权限等级不允许写入文件"
+        try:
+            target = self._check(path)
+        except PermissionError as exc:
+            return f"[拒绝] {exc}"
+        try:
+            with open(target, "w", encoding="utf-8") as f:
+                f.write(content)
+        except Exception as exc:
+            return f"[错误] {exc}"
+        return f"[写入] {len(content)} 字符 → {target}"
+
+    def run_command(self, cmd: str, timeout: int = 60) -> str:
+        if not self._allowed("run_command"):
+            return "[拒绝] 当前权限等级不允许执行命令"
+        import subprocess
+
+        try:
+            proc = subprocess.run(
+                ["cmd", "/c", cmd],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                shell=False,
+            )
+        except subprocess.TimeoutExpired:
+            return "[超时] 命令执行超过限制"
+        except Exception as exc:
+            return f"[错误] {exc}"
+        out = (proc.stdout or "")[-3000:]
+        err = (proc.stderr or "")[-1000:]
+        return f"[退出码 {proc.returncode}]\n{out}\n{err}".strip()

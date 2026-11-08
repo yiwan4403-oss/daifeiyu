@@ -166,6 +166,44 @@ def test_tester_rejects_and_passes(tmp_path):
     assert not ok
 
 
+def test_pipeline_auto_approve_full_permissions(tmp_path, monkeypatch):
+    """完全权限：测试通过即自动安装，无需人工审批。"""
+    from security.permission import PermissionManager
+
+    components = make_components(tmp_path)
+    cfg = make_cfg(tmp_path)
+    reg = CapabilityRegistry()
+    components["registry"] = reg
+    components["permissions"] = PermissionManager(max_level=3, auto_approve=True)
+    pipeline = pipeline_mod.DevPipeline(cfg, components)
+
+    class FakeGenerator:
+        def __init__(self, *a, **k):
+            pass
+
+        async def generate(self, requirement):
+            return {
+                "id": "dice",
+                "name": "掷骰子",
+                "version": "1.0.0",
+                "description": "d",
+                "capabilities": ["dice"],
+                "tools": [{"name": "roll", "description": "掷", "params": "{}"}],
+                "permissions": [],
+                "code": DICE_CODE,
+                "tests": DICE_TESTS,
+            }
+
+    monkeypatch.setattr(pipeline_mod, "CodeGenerator", FakeGenerator)
+    pipeline.generator = FakeGenerator()
+
+    result = asyncio.run(pipeline.develop("掷骰子"))
+    assert result["status"] == "installed", result
+    assert result.get("auto_approved") is True
+    assert pipeline.pending() == []
+    assert reg.has_capability("dice")
+
+
 def test_pipeline_end_to_end(tmp_path, monkeypatch):
     components = make_components(tmp_path)
     cfg = make_cfg(tmp_path)

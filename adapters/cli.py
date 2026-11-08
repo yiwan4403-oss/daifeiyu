@@ -123,9 +123,13 @@ async def run_cli(components: dict, cfg: dict) -> None:
         print(f"[plugins] 已自动加载：{auto_loaded}")
 
     windows_adapter = WindowsAdapter(
-        cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"])
+        cfg.get("windows", {}).get("allowed_dirs", ["workspace", "data"]),
+        cfg.get("windows", {}).get("deny_dirs", []),
     )
     windows_adapter.permissions = components["permissions"]
+    windows_adapter.unrestricted = components["permissions"].max_level >= 3
+    if windows_adapter.unrestricted:
+        print("[windows] L3：文件访问不限制路径")
     components["adapters"] = {
         "browser": BrowserAdapter(),
         "windows": windows_adapter,

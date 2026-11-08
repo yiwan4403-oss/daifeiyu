@@ -86,6 +86,17 @@ def test_windows_write_and_run_gated(tmp_path):
     assert "hi" in out
 
 
+def test_windows_unrestricted_and_deny(tmp_path):
+    outside = str(tmp_path / "outside")
+    os.makedirs(outside, exist_ok=True)
+    w = WindowsAdapter([str(tmp_path / "ws")], deny_dirs=[str(tmp_path / "secret")])
+    assert w.read_file(os.path.join(outside, "x.txt")).startswith("[拒绝]")
+    w.unrestricted = True
+    assert "写入" in w.write_file(os.path.join(outside, "x.txt"), "ok")
+    os.makedirs(str(tmp_path / "secret"), exist_ok=True)
+    assert w.read_file(os.path.join(str(tmp_path / "secret"), "s.txt")).startswith("[拒绝]")
+
+
 def test_event_payload_sanitized(tmp_path):
     components = make_components(tmp_path)
     components["events"].append("UserMessageReceived", "private", "user", "u", "正常\x00消息\x07")

@@ -1,4 +1,4 @@
-"""Windows 适配器 v1：白名单目录内的只读文件操作。写操作留待 L2 审批。"""
+"""Windows 适配器：L3 下不限制路径（可配禁区），低权限按白名单。"""
 
 import os
 
@@ -8,11 +8,13 @@ from adapters.base import Adapter
 class WindowsAdapter(Adapter):
     name = "windows"
 
-    def __init__(self, allowed_dirs: list | None = None) -> None:
+    def __init__(self, allowed_dirs: list | None = None, deny_dirs: list | None = None) -> None:
         self.allowed_dirs = [os.path.abspath(d) for d in (allowed_dirs or ["workspace", "data"])]
+        self.deny_dirs = [os.path.abspath(d) for d in (deny_dirs or []) if d]
+        self.unrestricted = False  # L3 时由 cli 置 True
 
     def capabilities(self) -> list[str]:
-        return ["file_list", "file_read"]
+        return ["file_list", "file_read", "file_write", "run_command"]
 
     def start(self) -> None:
         pass
@@ -22,6 +24,11 @@ class WindowsAdapter(Adapter):
 
     def _check(self, path: str) -> str:
         target = os.path.abspath(path)
+        for d in self.deny_dirs:
+            if target == d or target.startswith(d + os.sep):
+                raise PermissionError(f"路径在禁区中: {path}")
+        if self.unrestricted:
+            return target
         for d in self.allowed_dirs:
             if target == d or target.startswith(d + os.sep):
                 return target

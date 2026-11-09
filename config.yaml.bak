@@ -1,0 +1,94 @@
+resident:
+  name: 大肥鱼
+  data_dir: data
+  log_level: INFO
+model:
+  provider: deepseek
+  base_url: https://api.deepseek.com
+  api_key_env: DEEPSEEK_API_KEY
+  model: deepseek-flash
+  timeout_seconds: 60
+  max_tokens: 300
+  temperature: 0.9
+task_models:
+  chat: deepseek-flash
+  reason: deepseek-v4-pro
+  light: deepseek-flash
+budget:
+  daily_usd: 0.5
+  usd_per_mtok_in: 0.28
+  usd_per_mtok_out: 1.68
+loop:
+  tick_seconds: 60
+life:
+  tick_seconds: 60
+  idle_minutes: 10
+  activity_interval_minutes: 30
+  max_decisions_per_hour: 6
+  reflect_every_activities: 8
+  proactive:
+    enabled: true
+    start_hour: 8
+    end_hour: 23
+    min_gap_minutes: 60
+development:
+  test_timeout_seconds: 60
+  allowed_imports:
+  - json
+  - random
+  - math
+  - datetime
+  - re
+  - typing
+  - collections
+mcp:
+  servers: []
+windows:
+  allowed_dirs:
+  - workspace
+  - data
+  - "."
+  - research
+qq:
+  enabled: true
+  host: 127.0.0.1
+  port: 6700
+  auto_reply: true
+  min_send_interval_seconds: 5
+  owner_ids:
+  - "2338033822"
+bilibili:
+  enabled: true
+  min_interval_seconds: 1.5
+  timeout_seconds: 15
+  owner_mid: ""
+  risk:
+    read_per_hour: 600
+    read_per_day: 3000
+    write_per_hour: 12
+    write_per_day: 30
+    write_cooldown_seconds: 120
+    dm_cooldown_seconds: 60
+    request_interval_seconds: 1.5
+    backoff_steps: [300, 600, 1200, 1800]
+
+bili_daily:
+  window_start_hour: 20
+  window_end_hour: 24
+  max_share_per_day: 3
+  deep_read: 3
+  skip_chance: 0.3
+  topics:
+    - 我的世界
+    - 独立游戏
+    - 科普
+
+proactive:
+  enabled: true
+  max_per_day: 3
+  quiet_start_hour: 23
+  quiet_end_hour: 8
+
+security:
+  max_level: 3
+  auto_approve: true

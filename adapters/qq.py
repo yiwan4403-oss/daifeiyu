@@ -27,7 +27,7 @@ def _parse_message(message) -> tuple[str, list[str]]:
         if stype == "text":
             texts.append(str(data.get("text", "")))
         elif stype == "image":
-            url = data.get("url") or ""
+            url = data.get("url") or data.get("file") or ""  # url 缺失时退回本地路径
             if url:
                 images.append(url)
             texts.append("[图片]")
@@ -54,6 +54,7 @@ class OneBotAdapter(Adapter):
         self._approved_actions: dict[int, object] = {}
         self._server = None
         self._last_send = 0.0
+        self._send_lock = asyncio.Lock()
 
     def capabilities(self) -> list[str]:
         return ["qq_send"]
@@ -129,6 +130,18 @@ class OneBotAdapter(Adapter):
     async def send_private(self, user_id: str, text: str) -> str:
         if not self.conns:
             raise ConnectionError("没有 OneBot 连接")
+        # 串行化 + 重试：NapCat 偶发慢响应，避免把消息标成失败
+        async with self._send_lock:
+            last_exc = None
+            for _ in range(2):
+                try:
+                    return await self._send_once(user_id, text)
+                except ConnectionError as exc:
+                    last_exc = exc
+                    await asyncio.sleep(2)
+            raise last_exc or ConnectionError("发送失败")
+
+    async def _send_once(self, user_id: str, text: str) -> str:
         # 发送限速（风控缓解）：两次发送至少间隔 min_send_interval 秒
         now = time.time()
         wait = self.min_send_interval - (now - self._last_send)
@@ -152,7 +165,7 @@ class OneBotAdapter(Adapter):
         for ws in list(self.conns):
             await ws.send(payload)
         try:
-            await asyncio.wait_for(fut, timeout=10)
+            await asyncio.wait_for(fut, timeout=30)
         except asyncio.TimeoutError:
             self._pending_actions.pop(echo, None)
             raise ConnectionError("OneBot 未响应")

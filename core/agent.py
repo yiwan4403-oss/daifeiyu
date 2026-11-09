@@ -11,6 +11,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import BinaryImage
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.usage import UsageLimits
 
 from core.context_builder import build_context
 
@@ -51,7 +52,7 @@ BUILTIN_TOOLS = (
     "remember", "recall", "capabilities", "dev_request", "web_fetch",
     "file_list", "file_read", "file_write", "run_command",
     "mcp_list", "mcp_call",
-    "bilibili_search", "bilibili_video", "bilibili_me", "qq_send",
+    "bilibili_search", "bilibili_video", "bilibili_me", "qq_send", "read_image",
 )
 
 
@@ -180,6 +181,15 @@ def _bili_me_tool(ctx: RunContext[ResidentDeps]) -> str:
     return adapter.me()
 
 
+async def _read_image_tool(ctx: RunContext[ResidentDeps], path: str) -> str:
+    """看一张本机图片：返回尺寸信息和图里的文字（本地离线 OCR）。"""
+    adapter = (ctx.deps.adapters or {}).get("vision")
+    if adapter is None:
+        return "视觉适配器未启用"
+    info = await adapter.inspect(path)
+    return adapter.to_prompt(info)
+
+
 async def _qq_send_tool(ctx: RunContext[ResidentDeps], user_id: str, text: str) -> str:
     """给 QQ 用户发私信：需要人工审批后才真正发送。"""
     adapter = (ctx.deps.adapters or {}).get("qq")
@@ -213,6 +223,7 @@ class ResidentAgent:
         }
         self.tier_models.update(cfg.get("task_models", {}))
         self.budget = cfg.get("budget", {})
+        self.vision_cfg = cfg.get("vision", {}) or {}
         self.conn = components["conn"]
         self.deps = ResidentDeps(
             identity=components["identity"],
@@ -230,6 +241,11 @@ class ResidentAgent:
         )
         self._spent_today = 0.0
         self._current_user = "user"
+
+    @staticmethod
+    def _limits() -> UsageLimits:
+        """工具循环不设步数上限；花费仍由 budget 日额度兜底。"""
+        return UsageLimits(request_limit=None)
 
     def _make(self, tier: str) -> OpenAIChatModel:
         return OpenAIChatModel(
@@ -285,52 +301,66 @@ class ResidentAgent:
         )
         self.conn.commit()
 
-    async def _chat_vision(self, user_text: str, images: list, tier: str) -> str | None:
-        """视觉通道：下载图片 → data URI → 直连网关（绕过 pydantic-ai 的纯文本模型档案）。"""
-        import base64
-        import types
-        import urllib.request
+    async def _vision_context(self, images: list) -> str:
+        """把图片转成可直接读的文本：本地 OCR（默认）/ 可选视觉模型。"""
+        adapter = (self.deps.adapters or {}).get("vision")
+        if adapter is None:
+            return "[图片] 视觉适配器未启用，只能看到你发了图"
+        chunks = []
+        for src in images[:3]:
+            info = await adapter.inspect(src)
+            chunks.append(adapter.to_prompt(info))
+            # 若配置了真正的视觉模型，再让它描述画面，拼在文字后面
+            caption = await self._vision_model(info.get("path", ""))
+            if caption:
+                chunks.append(f"[画面] {caption}")
+        return "\n".join(chunks)
 
+    async def _vision_model(self, path: str) -> str:
+        """可选：外部多模态模型。没配置就直接返回空字符串。"""
+        model = (self.vision_cfg or {}).get("model", "")
+        if not model or not path:
+            return ""
+        base = self.vision_cfg.get("base_url", self.base_url)
+        key_env = self.vision_cfg.get("api_key_env", "DEEPSEEK_API_KEY")
         try:
-            req = urllib.request.Request(
-                images[0], headers={"User-Agent": "Resident/0.9"}
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                data = resp.read(8 * 1024 * 1024)
-            if not data:
-                return None
+            with open(path, "rb") as f:
+                data = f.read(8 * 1024 * 1024)
+            mime = "image/png"
+            if data[:3] == b"\xff\xd8\xff":
+                mime = "image/jpeg"
+            elif data[:4] == b"GIF8":
+                mime = "image/gif"
+            import base64
+
+            uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
         except Exception:
-            return None
-        b64 = base64.b64encode(data).decode("ascii")
-        uri = f"data:image/png;base64,{b64}"
-        fake_ctx = types.SimpleNamespace(deps=self.deps, prompt=user_text)
-        system = self._system(fake_ctx)
+            return ""
         from core.model_gateway import ModelGateway
 
         gw = ModelGateway(
             {
-                "base_url": self.base_url,
-                "api_key_env": "DEEPSEEK_API_KEY",
-                "model": self.tier_models.get(tier, self.tier_models["chat"]),
-                "timeout_seconds": 60,
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "retries": 1,
+                "base_url": base,
+                "api_key_env": key_env,
+                "model": model,
+                "timeout_seconds": 45,
+                "max_tokens": 300,
+                "temperature": 0.3,
+                "retries": 0,
             }
         )
         try:
             import asyncio as _asyncio
 
-            reply = await _asyncio.to_thread(gw.chat_vision, system, user_text, uri)
+            out = await _asyncio.to_thread(
+                gw.chat_vision, "描述这张图，中文，两句话以内。", "这张图里有什么？", uri
+            )
         except Exception:
-            return None
-        self.conn.execute(
-            "INSERT INTO model_usage(ts, task_class, model, in_tokens, out_tokens, cost_est, ok) "
-            "VALUES (?,?,?,0,0,0,1)",
-            (__import__("time").time(), tier + ":vision", self.tier_models.get(tier, "")),
-        )
-        self.conn.commit()
-        return reply.strip()
+            return ""
+        out = (out or "").strip()
+        if "Unsupported Image" in out or not out:
+            return ""
+        return out[:300]
 
     async def chat(
         self, user_text: str, tier: str = "chat", user_key: str = "", images: list | None = None
@@ -338,11 +368,10 @@ class ResidentAgent:
         if user_key:
             self._current_user = user_key
         self._check_budget()
-        if images:
-            vision_reply = await self._chat_vision(user_text, images, tier)
-            if vision_reply is not None:
-                return vision_reply
         prompt = user_text
+        if images:
+            ctx = await self._vision_context(images)
+            prompt = f"{user_text}\n\n{ctx}" if user_text else ctx
         agent = Agent(
             self._make(tier),
             deps_type=ResidentDeps,
@@ -363,11 +392,12 @@ class ResidentAgent:
                 _bili_video_tool,
                 _bili_me_tool,
                 _qq_send_tool,
+                _read_image_tool,
             ],
             retries=1,
         )
         try:
-            result = await agent.run(user_text, deps=self.deps)
+            result = await agent.run(prompt, deps=self.deps, usage_limits=self._limits())
         except Exception as exc:
             msg = str(exc)
             # 网络抖动/超时：重试一次，别让她把错误当回复发出去
@@ -376,7 +406,7 @@ class ResidentAgent:
 
                 await _asyncio.sleep(1.5)
                 try:
-                    result = await agent.run(user_text, deps=self.deps)
+                    result = await agent.run(prompt, deps=self.deps, usage_limits=self._limits())
                 except Exception:
                     return "（网络抽风了，等会儿再跟我说一遍吧）"
             elif "401" in msg or "Authentication" in msg:

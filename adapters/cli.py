@@ -94,6 +94,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
 
     from adapters.bilibili import BilibiliAdapter
     from adapters.browser import BrowserAdapter
+    from adapters.vision import VisionAdapter
     from adapters.windows import WindowsAdapter
     from development.mcp_client import MCPHub
     from development.pipeline import DevPipeline
@@ -134,6 +135,7 @@ async def run_cli(components: dict, cfg: dict) -> None:
         "browser": BrowserAdapter(),
         "windows": windows_adapter,
         "bilibili": BilibiliAdapter(cfg.get("bilibili", {})),
+        "vision": VisionAdapter(cfg.get("vision", {})),
     }
     qq_cfg = cfg.get("qq", {})
     if qq_cfg.get("enabled"):

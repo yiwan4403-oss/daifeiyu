@@ -92,3 +92,13 @@ proactive:
 security:
   max_level: 3
   auto_approve: true
+
+vision:
+  enabled: true
+  ocr_enabled: true
+  ocr_language: zh-Hans-CN
+  max_chars: 800
+  # deepseek-flash 支持图片；deepseek-v4-pro 不支持（实测）
+  model: "deepseek-flash"
+  base_url: "https://api.deepseek.com"
+  api_key_env: "DEEPSEEK_API_KEY"

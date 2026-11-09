@@ -102,3 +102,8 @@ vision:
   model: "deepseek-flash"
   base_url: "https://api.deepseek.com"
   api_key_env: "DEEPSEEK_API_KEY"
+  # 本地视觉模型（Ollama），离线、免费；装了 Ollama 再设 true
+  local:
+    enabled: false
+    base_url: "http://127.0.0.1:11434"
+    model: "qwen2.5vl:3b"

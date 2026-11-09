@@ -3,12 +3,12 @@
 三层能力，按代价从低到高：
 1. 图片基础信息（尺寸/格式）—— 纯本地，PIL。
 2. 本地 OCR（Windows.Media.Ocr，离线免费，中文语言包已就位）。
-3. 视觉大模型（可选，需要 config 里配 vision.model；DeepSeek 主线不支持图像）。
-
-上层只调用 inspect()，拿到的是一段可以直接塞进提示词的中文描述。
+3. 视觉模型：优先本地 Ollama（离线），其次外部多模态 API（可选）。
 """
 
 import asyncio
+import base64
+import json
 import os
 import re
 import urllib.request
@@ -26,16 +26,58 @@ class VisionAdapter:
         self.ocr_enabled = bool(cfg.get("ocr_enabled", True))
         self.ocr_language = cfg.get("ocr_language", "zh-Hans-CN")
         self.max_chars = int(cfg.get("max_chars", 800))
+        self.local = cfg.get("local", {}) or {}
         self._ocr_engine = None
 
     def capabilities(self) -> list[str]:
-        return ["vision_ocr"]
+        return ["vision_ocr", "vision_local"]
+
+    # ---- 本地视觉模型（Ollama） ----
+    def local_available(self) -> bool:
+        return bool((self.local or {}).get("enabled", False) and self.local.get("model"))
+
+    def caption_local(self, path: str) -> str:
+        """调用本地 Ollama 视觉模型描述画面（离线、免费）。"""
+        if not self.local_available():
+            return ""
+        base = self.local.get("base_url", "http://127.0.0.1:11434").rstrip("/")
+        model = self.local["model"]
+        try:
+            with open(path, "rb") as f:
+                b64 = base64.b64encode(f.read(MAX_BYTES)).decode("ascii")
+        except Exception:
+            return ""
+        payload = json.dumps(
+            {
+                "model": model,
+                "prompt": "用中文简单描述这张图片：里面有什么、在做什么。两三句话，只描述看到的事实。",
+                "images": [b64],
+                "stream": False,
+                "options": {"temperature": 0.2, "num_predict": 200},
+            }
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            f"{base}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            return ""
+        out = str(data.get("response", "")).strip()
+        return out[:400]
 
     # ---- 取图 ----
     def fetch(self, src: str, save_dir: str = "data/images") -> str:
         """src 可以是 http(s) URL、file:// 或本地路径；返回本地文件路径。"""
         if src.startswith("file://"):
-            return src[7:]
+            from urllib.parse import unquote, urlparse
+            from urllib.request import url2pathname
+
+            return url2pathname(unquote(urlparse(src).path))
         if not src.startswith(("http://", "https://")):
             if os.path.isfile(src):
                 return src
@@ -126,5 +168,5 @@ class VisionAdapter:
         if ocr:
             parts.append(f"[图里的文字]\n{ocr}")
         else:
-            parts.append("[图里的文字] 没识别到文字")
+            parts.append("[图里的文字] （无文字或未识别到）")
         return "\n".join(parts)

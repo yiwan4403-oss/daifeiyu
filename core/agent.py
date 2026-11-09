@@ -301,6 +301,73 @@ class ResidentAgent:
         )
         self.conn.commit()
 
+    async def _chat_vision_direct(self, user_text: str, ctx: str, src: str) -> str:
+        """把图片本体发给视觉模型（deepseek-flash 支持图片），OCR 结果作补充。"""
+        import base64
+        import types
+
+        adapter = (self.deps.adapters or {}).get("vision")
+        path = src
+        if adapter is not None:
+            try:
+                path = adapter.fetch(src)
+            except Exception:
+                path = src
+        try:
+            if path.startswith(("http://", "https://")):
+                import urllib.request
+
+                req = urllib.request.Request(path, headers={"User-Agent": "Resident/0.9"})
+                with urllib.request.urlopen(req, timeout=20) as resp:
+                    data = resp.read(8 * 1024 * 1024)
+            else:
+                with open(path, "rb") as f:
+                    data = f.read(8 * 1024 * 1024)
+        except Exception:
+            return ""
+        if not data:
+            return ""
+        mime = "image/png"
+        if data[:3] == b"\xff\xd8\xff":
+            mime = "image/jpeg"
+        elif data[:4] == b"GIF8":
+            mime = "image/gif"
+        uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+        vision_model = (self.vision_cfg or {}).get("model") or "deepseek-flash"
+        from core.model_gateway import ModelGateway
+
+        gw = ModelGateway(
+            {
+                "base_url": self.base_url,
+                "api_key_env": "DEEPSEEK_API_KEY",
+                "model": vision_model,
+                "timeout_seconds": 90,
+                "max_tokens": 800,
+                "temperature": 0.6,
+                "retries": 1,
+            }
+        )
+        fake_ctx = types.SimpleNamespace(deps=self.deps, prompt=user_text)
+        system = self._system(fake_ctx)
+        ask = user_text or "看看这张图，说说你看到了什么。"
+        full = ask + "\n\n（OCR 附带信息，可能为空）\n" + ctx
+        try:
+            import asyncio as _asyncio
+
+            reply = await _asyncio.to_thread(gw.chat_vision, system, full, uri)
+        except Exception:
+            return ""
+        reply = (reply or "").strip()
+        if not reply or "Unsupported Image" in reply:
+            return ""
+        self.conn.execute(
+            "INSERT INTO model_usage(ts, task_class, model, in_tokens, out_tokens, cost_est, ok) "
+            "VALUES (?,?,?,?,?,?,1)",
+            (__import__("time").time(), "chat:vision", vision_model, 0, 0, 0.0),
+        )
+        self.conn.commit()
+        return reply
+
     async def _vision_context(self, images: list) -> str:
         """把图片转成可直接读的文本：本地 OCR（默认）/ 可选视觉模型。"""
         adapter = (self.deps.adapters or {}).get("vision")
@@ -310,8 +377,17 @@ class ResidentAgent:
         for src in images[:3]:
             info = await adapter.inspect(src)
             chunks.append(adapter.to_prompt(info))
-            # 若配置了真正的视觉模型，再让它描述画面，拼在文字后面
-            caption = await self._vision_model(info.get("path", ""))
+            # 画面描述：优先本地视觉模型（离线），再退回外部多模态
+            caption = ""
+            if getattr(adapter, "local_available", lambda: False)():
+                try:
+                    import asyncio as _a
+
+                    caption = await _a.to_thread(adapter.caption_local, info.get("path", ""))
+                except Exception:
+                    caption = ""
+            if not caption:
+                caption = await self._vision_model(info.get("path", ""))
             if caption:
                 chunks.append(f"[画面] {caption}")
         return "\n".join(chunks)
@@ -372,6 +448,10 @@ class ResidentAgent:
         if images:
             ctx = await self._vision_context(images)
             prompt = f"{user_text}\n\n{ctx}" if user_text else ctx
+            # 直接把图片交给支持视觉的模型（比预先生成描述更稳定）
+            direct = await self._chat_vision_direct(user_text, ctx, images[0])
+            if direct:
+                return direct
         agent = Agent(
             self._make(tier),
             deps_type=ResidentDeps,

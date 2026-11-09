@@ -7,3 +7,4 @@ credentials/
 __pycache__/
 .pytest_cache/
 run.log
+*.bak
